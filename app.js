@@ -1,3 +1,5 @@
+//784 added oval tool
+// next: add rounded square tool
 Permissions.can_color_cell = function() {
   return true
 };
@@ -130,72 +132,184 @@ function scrollWorld(offset = [0, 0]) {
 
 
 const ptr = {
+
   mouse: {
     downLeft: false,
     downRight: false,
-    draw: false
+    draw: false,
   },
+  line: {
+    start: null,
+    end: null
+  },
+  ctrl: false,
+  alt: false,
+  shift: false,
+  fill: false,
+  altFill: false,
+  delay: 10,
+  cells: [],
   color: YourWorld.Color,
   bg: YourWorld.BgColor == -1 ? "#ffffff" : YourWorld.BgColor,
   mode: 'text',
-  html: `
+  html: `<div id="o-ptr-info-container">
+  <div id="o-ptr-info-top">
+    <p id="o-ptr-info-title">Text Tool (t)</p><input type="button" onclick="toggleInfo()" value="hide">
 
-  <div id="o-ptr-header-container">
-    <div id="o-ptr-titlebar"> untitled - Paint</div>
-    <div id="o-ptr-window-bar">
-      <div class="o-ptr-window-bar-btn">File</div>
-      <div class="o-ptr-window-bar-btn">Edit</div>
-      <div class="o-ptr-window-bar-btn">View</div>
-      <div class="o-ptr-window-bar-btn">Image</div>
-      <div class="o-ptr-window-bar-btn">Colors</div>
-      <div class="o-ptr-window-bar-btn">Help</div>
+  </div>
+  <div id="o-ptr-info-section">
+    <div id="o-ptr-info-list">
+      <div id="info-select" class="">
+        <div>Default action: <span>Selects a region of cells.</span></div>
+
+      </div>
+      <div id="info-erase" class="">
+        <div>Default action: <span>Erases a single octo-cell</span></div>
+        <div>Ctrl: <span>Erases an entire cell</span></div>
+        <div>Alt+Left-click: <span>Erase forground text only</span></div>
+        <div>Alt+Right-click: <span>Erases background only</span></div>
+
+      </div>
+      <div id="info-bucket" class="">
+        <div>Default action: <span>Fills an area with a color</span></div>
+        <div>Ctrl: <span>Fills the background instead</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+
+      </div>
+      <div id="info-dropper" class="">
+        <div>Default action: <span>Copies a cells color</span></div>
+        <div>Alt: <span>Uses a browser-specific tool</span></div>
+        <div>Left-click: <span>Copies to primary color</span></div>
+        <div>Right-click: <span>Copies to secondary color</span></div>
+
+      </div>
+      <div id="info-zoom" class="">
+        <div>Default action: <span>Zooms into an area</span></div>
+        <div>Ctrl or Alt: <span>Zooms out</span></div>
+
+      </div>
+      <div id="info-pencil" class="">
+        <div>Default action: <span>Draws an octo character to a cell</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+      </div>
+
+      <div id="info-line" class="">
+        <div>Default action: <span>Draws a line from mouse-down to mouse-up.</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-shape" class="">
+        <div>Default action: <span>Draws a continuous line from mouse-down to mouse-up.</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-square" class="">
+        <div>Default action: <span>Draws a rectangle shape</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-circle" class="">
+        <div>Default action: <span>Draws an oval shape</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-brush" class="">
+        <div>Default action: <span>Replaces the background color</span></div>
+        <div>Ctrl: <span>Replace the forground color instead</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+
+      </div>
+      <div id="info-spray" class="">
+        <div>Default action: <span>Sprays an octo-pixel randomly within a radius.</span></div>
+        <div>Ctrl: <span>Large radius with full blocks</span></div>
+        <div>Alt: <span>Medium radius with octo-pixels</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+
+      </div>
+      <div id="info-text" class="active">
+        <div>Default action: <span>Standard owot behavior</span></div>
+				<div>Note: <span>Tool shortcut keys do not work in this mode.</span></div>
+      </div>
     </div>
   </div>
-  <div id="o-ptr-side-container">
-    <div data-value="star-select" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="select" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="erase" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="bucket" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="dropper" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="zoom" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="pencil" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="brush" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-    <div data-value="spray" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="text" onclick="handleToolClick(this)" class="o-ptr-tool-btn active"></div>
-    <div data-value="line" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="curve" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="square" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="shape" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="circle" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-    <div data-value="rounded" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-  </div>
-  <div id="o-ptr-bottom-container">
-    <div onclick="handleColorClick(this)" id="o-ptr-color-switch">
-      <div class="o-ptr-color-switch-prev bg"></div>
-      <div class="o-ptr-color-switch-prev main"></div>
+</div>
+
+<div id="o-ptr-header-container">
+  <div id="o-ptr-titlebar"> untitled - Paint</div>
+  <div id="o-ptr-window-bar">
+    <div class="o-ptr-window-bar-btn">File</div>
+    <div class="o-ptr-window-bar-btn">Edit</div>
+    <div class="o-ptr-window-bar-btn">View
+      <div class="ptr-dropdown">
+        <input type="button" onclick="toggleInfo()" value="Toggle Info Window">
+      </div>
     </div>
-    <input oninput="handleColorChange(this)" type="color" value="#000000">
-    <input oninput="handleColorChange(this)" type="color" value="#ffffff">
-    <input oninput="handleColorChange(this)" type="color" value="#ff0000">
-    <input oninput="handleColorChange(this)" type="color" value="#ff5900">
-    <input oninput="handleColorChange(this)" type="color" value="#ffae00">
-    <input oninput="handleColorChange(this)" type="color" value="#ffd500">
-    <input oninput="handleColorChange(this)" type="color" value="#b5f73b">
-    <input oninput="handleColorChange(this)" type="color" value="#48f73b">
-    <input oninput="handleColorChange(this)" type="color" value="#3bf7af">
-    <input oninput="handleColorChange(this)" type="color" value="#3bf4f7">
-    <input oninput="handleColorChange(this)" type="color" value="#3bd1f7">
-    <input oninput="handleColorChange(this)" type="color" value="#3b9cf7">
-    <input oninput="handleColorChange(this)" type="color" value="#3b41f7">
-    <input oninput="handleColorChange(this)" type="color" value="#903bf7">
-    <input oninput="handleColorChange(this)" type="color" value="#ce3bf7">
-    <input oninput="handleColorChange(this)" type="color" value="#f73ba9">
+    <div class="o-ptr-window-bar-btn">Image</div>
+    <div class="o-ptr-window-bar-btn">Colors</div>
+    <div class="o-ptr-window-bar-btn">Help</div>
   </div>
+</div>
+<div id="o-ptr-side-container">
+  <div data-value="star-select" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
+  <div data-value="select" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="erase" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="bucket" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="dropper" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="zoom" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="pencil" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="brush" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="spray" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="text" onclick="handleToolClick(this)" class="o-ptr-tool-btn active"></div>
+  <div data-value="line" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="curve" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
+  <div data-value="square" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="shape" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="circle" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="rounded" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
+</div>
+<div id="o-ptr-bottom-container">
+  <div onclick="handleColorClick(this)" id="o-ptr-color-switch">
+    <div class="o-ptr-color-switch-prev bg"></div>
+    <div class="o-ptr-color-switch-prev main"></div>
+  </div>
+  <input oninput="handleColorChange(this)" type="color" value="#000000">
+  <input oninput="handleColorChange(this)" type="color" value="#ffffff">
+  <input oninput="handleColorChange(this)" type="color" value="#ff0000">
+  <input oninput="handleColorChange(this)" type="color" value="#ff5900">
+  <input oninput="handleColorChange(this)" type="color" value="#ffae00">
+  <input oninput="handleColorChange(this)" type="color" value="#ffd500">
+  <input oninput="handleColorChange(this)" type="color" value="#b5f73b">
+  <input oninput="handleColorChange(this)" type="color" value="#48f73b">
+  <input oninput="handleColorChange(this)" type="color" value="#3bf7af">
+  <input oninput="handleColorChange(this)" type="color" value="#3bf4f7">
+  <input oninput="handleColorChange(this)" type="color" value="#3bd1f7">
+  <input oninput="handleColorChange(this)" type="color" value="#3b9cf7">
+  <input oninput="handleColorChange(this)" type="color" value="#3b41f7">
+  <input oninput="handleColorChange(this)" type="color" value="#903bf7">
+  <input oninput="handleColorChange(this)" type="color" value="#ce3bf7">
+  <input oninput="handleColorChange(this)" type="color" value="#f73ba9">
+</div>
 
 
 `,
-  css: `
-#o-ptr-container {
+  css: `#o-ptr-container {
   display: block;
   top: 0px;
   position: fixed;
@@ -342,7 +456,7 @@ div#o\=ptr-titlebar {}
 }
 
 .precise-icon {
-  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAYUlEQVR42u3TQQ7AIAhEUef+h24lXbYlEDXU9LPRheCDqFpxCACArQFHD0m2NtkGAAAAvwOYYbTWa5J15yZeDSuR8jglT+1Xu+dnz39/ApFY9wZCt1f/AgAAAJQDZgQAACep+IQhsONPEQAAAABJRU5ErkJggg==') 12 12, auto !important;
+  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAYUlEQVR42u3TQQ7AIAhEUef+h24lXbYlEDXU9LPRheCDqFpxCACArQFHD0m2NtkGAAAAvwOYYbTWa5J15yZeDSuR8jglT+1Xu+dnz39/ApFY9wZCt1f/AgAAAJQDZgQAACep+IQhsONPEQAAAABJRU5ErkJggg==') 16 16, auto !important;
 }
 
 .zoom-icon {
@@ -411,7 +525,85 @@ input[type="color"] {
   bottom: 3px;
   margin-left: 8px;
 }
+#br-cursor{
 
+position : absolute;
+width : ${Math.ceil(cellW / 2)}px;
+height : ${Math.ceil(cellH / 4)}px;
+background-color : rgba(0, 0, 255, 0.25);
+pointer-events :none;
+}
+#o-ptr-info-container {
+    width: 300px;
+    position: fixed;
+    top: 40px;
+    right: 0px;
+    background-color: #bfbfbf;
+    border: 1px solid black;
+}
+
+#o-ptr-info-container {
+}
+
+#o-ptr-info-top {
+    padding: 7px;
+    background-color: #02007d;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+}
+
+#o-ptr-info-section {
+    padding: 20px;
+}
+
+#o-ptr-info-list {
+    list-style: none;
+    width: 100%;
+    height: 100%;
+}
+
+#o-ptr-info-list div span {
+    font-weight: normal;
+}
+
+#o-ptr-info-list > div {display: none;}
+    
+
+#o-ptr-info-list .active {display: flex;width: 100%;height: 100%;flex-direction: row;flex-wrap: wrap;align-content: stretch;align-items: center;justify-content: space-between;font-weight: 600;}
+
+#o-ptr-info-list .active div {width: 100%;display: flex;justify-content: space-between;}
+
+#o-ptr-info-top input[type="button"] {
+    padding: 1px 10px;
+    background-color: red;
+    color: white;
+    border: none;
+    cursor: pointer;
+    pointer-events: all;
+}
+.ptr-dropdown {
+    display: none;
+    background-color: #bfbfbf;
+    position: absolute;
+    margin-top: 1px;
+    border: 1px solid black;
+    margin-left: -5px;
+}
+
+.ptr-dropdown input[type="button"] {
+    border: none;
+    border-bottom: 1px solid black;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.o-ptr-window-bar-btn:hover .ptr-dropdown {
+    display: block;
+}
+.hidden{
+display:none !important
+}
 `,
   elements: {
     container: document.createElement("div"),
@@ -554,6 +746,10 @@ function updateColors() {
   YourWorld.BgColor = (ptr.bg == -1 || ptr.bg == '#ffffff') ? -1 : resolveColorValue(ptr.bg);
 }
 
+function toggleInfo() {
+  document.querySelector("#o-ptr-info-container").classList.toggle("hidden");
+}
+
 function handleToolClick(el) {
   const toolType = el.getAttribute("data-value");
   setActiveTool(el)
@@ -561,35 +757,68 @@ function handleToolClick(el) {
   w.disableCursor();
   w.disableDragging();
   w.regionSelect.stopSelectionUI();
+  brLast = null;
   ptr.mode = toolType;
   switch (toolType) {
     case "select":
       owot.classList.add("precise-icon");
-      w.regionSelect.startSelection()
+      w.regionSelect.startSelection();
+      document.querySelector(`#o-ptr-info-title`).innerText = "Select Tool (s)";
       break;
     case "erase":
       owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Erase Tool (e)";
       break;
     case "dropper":
       owot.classList.add("dropper-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Dropper tool (d)";
       break;
     case "zoom":
       owot.classList.add("zoom-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Zoom Tool (z)";
       break;
     case "pencil":
       owot.classList.add("pencil-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Pencil Tool (p)";
       break;
     case "bucket":
       owot.classList.add("bucket-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Fill Tool (f)";
+      break;
+    case "brush":
+      document.querySelector(`#o-ptr-info-title`).innerText = "Brush Tool (b)";
+      break;
+    case "spray":
+      owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Graffiti Tool (g)";
+      break;
+    case "line":
+      owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Line Tool (l)";
+      break;
+    case "shape":
+      owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Shape Tool (k)";
+      break;
+    case "square":
+      owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Rectangle Tool (r)";
+      break;
+    case "circle":
+      owot.classList.add("precise-icon");
+      document.querySelector(`#o-ptr-info-title`).innerText = "Oval Tool (o)";
       break;
     case "text":
-      // text is dafult of the canvas
+      document.querySelector(`#o-ptr-info-title`).innerText = "Text Tool (t)";
       w.enableDragging();
       w.enableCursor();
       break;
     default:
       // code block
   }
+
+  document.querySelector("#o-ptr-info-list .active")?.classList.remove("active");
+  document.querySelector(`#info-${ptr.mode}`)?.classList.add("active");
 }
 
 var mode = 0; // 0 = draw, 1 = delete
@@ -653,12 +882,9 @@ function applyDot(chr, x, y, erase) {
 }
 
 var brCursor = document.createElement("div");
-brCursor.style.position = "absolute";
-brCursor.style.width = Math.ceil(cellW / 2) + "px";
-brCursor.style.height = Math.ceil(cellH / 4) + "px";
-brCursor.style.backgroundColor = "rgba(0, 0, 255, 0.5)";
-brCursor.style.pointerEvents = "none";
+brCursor.id = "br-cursor"
 elm.main_view.appendChild(brCursor);
+
 
 w.on("tilesrendered", function() {
   const offset = zoom >= 2 ? -1 : 0
@@ -668,7 +894,12 @@ w.on("tilesrendered", function() {
 
 var brDraw = false;
 var brLast = null;
-w.on("mousemove", function(e) {
+
+function doPoint(e, forcemode, param) {
+
+  if (!e || "line shape square circle".includes(ptr.mode) && forcemode !== ptr.mode) {
+    return
+  }
 
   var tileX = e.tileX;
   var tileY = e.tileY;
@@ -691,21 +922,30 @@ w.on("mousemove", function(e) {
   // absolute dot position
   var absBrX = Math.floor(absX / segW);
   var absBrY = Math.floor(absY / segH);
+  var absBrX_L = Math.floor(absX / cellW);
+  var absBrY_L = Math.floor(absY / cellH);
+  const altType = ptr.ctrl || ptr.mode == "brush"
+  const [mouseX, mouseY] = currentMousePosition;
+  const radius = altType ? param + cellH : param + (cellW / 2);
+  brCursor.style.borderRadius = ptr.mode == "spray" ? "100%" : "0%"
+  brCursor.style.width = ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellW + "px" : Math.ceil(cellW / 2) + "px";
+  brCursor.style.height = ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellH + "px" : Math.ceil(cellH / 4) + "px";
+  brCursor.style.left = ptr.mode == "spray" ? mouseX - radius + "px" : altType ? (cellW * absBrX_L + halfX + positionX) + "px" : (segW * absBrX + halfX + positionX) + "px";
+  brCursor.style.top = ptr.mode == "spray" ? mouseY - radius + "px" : altType ? (cellH * absBrY_L + halfY + positionY) + "px" : (segH * absBrY + halfY + positionY) + "px";
+  brCursor.style.opacity = "pencil erase brush spray line shape square circle".includes(ptr.mode) ? 1 : 0;
 
-  brCursor.style.left = (segW * absBrX + halfX + positionX) + "px";
-  brCursor.style.top = (segH * absBrY + halfY + positionY) + "px";
-  brCursor.style.opacity = ptr.mode == "pencil" ? 1 : 0;
 
-
-  if (!ptr.mouse.draw || ptr.mode !== "pencil" && ptr.mode !== "erase" && ptr.mode !== "brush") {
+  if (!ptr.mouse.draw && !("line shape square circle".includes(forcemode)) || !"pencil erase brush spray line shape square circle".includes(ptr.mode) || ptr.mode == "spray" && forcemode !== "spray") {
     brLast = null;
 
     return;
   }
 
+  if (brLast || ptr.mode == "spray" && forcemode == "spray" || ptr.mode == "pencil" && forcemode == "single") {
+    var line = forcemode == "spray" || forcemode == "single" ?
+      lineGen(absBrX, absBrY, absBrX, absBrY) :
+      lineGen(brLast[0], brLast[1], absBrX, absBrY);
 
-  if (brLast) {
-    var line = lineGen(brLast[0], brLast[1], absBrX, absBrY);
     // interpolate
     for (var i = 0; i < line.length; i++) {
       var pixel = line[i];
@@ -728,10 +968,14 @@ w.on("mousemove", function(e) {
       const protectionArray = keysToInclude.map(key => styles[key]);
       const cellColor = resolveColorValue(protectionArray[getCharInfoXY().protection]);
       const drawColor = erasing ?
+        //if erasing
         cellColor :
-        brush ?
+        //if not erasing
+        brush && !ptr.ctrl ?
+        //if brus + ctrl
         chr.color :
-        ptr.mouse.downRight ?
+        //else
+        ptr.mouse.downRight || "line shape square circle".includes(ptr.mode) && param ?
         resolveColorValue(ptr.bg) :
         resolveColorValue(ptr.color);
 
@@ -750,15 +994,27 @@ w.on("mousemove", function(e) {
       const charColor = mode ? brush ? chr.color : chr.color : drawColor;
       const charBgColor =
         erasing ?
-        cellColor : brush ?
+        cellColor :
+        brush && !ptr.ctrl ?
         ptr.mouse.downRight ?
-        resolveColorValue(ptr.bg) : resolveColorValue(ptr.color) :
+        resolveColorValue(ptr.bg) :
+        resolveColorValue(ptr.color) :
         chr.bgColor;
       writeCharToXY(dotChr, charColor, cx, cy, charBgColor);
     }
   }
   brLast = [absBrX, absBrY];
-});
+  if (ptr.line.start && ptr.line.end) {
+
+    if ("line".includes(ptr.mode)) {
+      ptr.line.start = ptr.line.end = null;
+      brLast = null;
+    } else if (ptr.mode == "shape") {
+      ptr.line.start = ptr.line.end = null;
+    }
+  }
+}
+w.on("mousemove", doPoint);
 
 var painterGridEnabled = false;
 drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
@@ -849,27 +1105,53 @@ document.querySelector("#o-ptr-bottom-container").addEventListener('mousedown', 
 elm.main_view.addEventListener("contextmenu", function(e) {
   e.preventDefault();
 })
+
 owot.addEventListener("mousedown", function(e) {
   setPtrMouse(e, true);
   ptr.mouse.draw = true;
+  ptr.alt = e.altKey;
+  ptr.ctrl = e.ctrlKey;
+  ptr.shift = e.shiftKey;
 
+  if ("line shape".includes(ptr.mode)) {
+    doLine(e);
+  } else if ("square".includes(ptr.mode)) {
+    doSquare(e)
+  } else if ("circle".includes(ptr.mode)) {
+    doOval(e)
+  } else {
+    doPoint(e, "single");
+  }
 })
 
 owot.addEventListener("mouseup", function(e) {
+  ptr.alt = e.altKey;
+  ptr.ctrl = e.ctrlKey;
+  ptr.shift = e.shiftKey;
   setPtrMouse(e);
   ptr.mouse.draw = false;
   if (ptr.mode == "dropper") {
     startEyeDropper(e);
   }
+  if (ptr.mode == "bucket") {
+    beginFill(e);
+  }
+  if ("line shape".includes(ptr.mode)) {
+    doLine(e);
+  } else if ("square".includes(ptr.mode)) {
+    doSquare(e)
+  } else if ("circle".includes(ptr.mode)) {
+    doOval(e)
+  }
 })
 
 owot.addEventListener("mousemove", function(e) {
+  ptr.shift = e.shiftKey;
   ptr.ctrl = e.ctrlKey;
-
+  ptr.alt = e.altKey;
 })
 
 owot.addEventListener("click", function(e) {
-
   if (ptr.mode == "zoom") {
     scrollWorld(lerp([0, 0], subtract([e.x, e.y], [(owotWidth / 2), (owotHeight / 2)]), 0.5));
     if (e.ctrlKey || e.altKey) {
@@ -881,4 +1163,379 @@ owot.addEventListener("click", function(e) {
   if (ptr.mode == "select") {
     w.regionSelect.startSelection();
   }
+
 })
+
+function setMode(mode) {
+  document.querySelector(`.o-ptr-tool-btn[data-value="${mode}"]`).click();
+}
+
+w.on("keydown", function(e) {
+  if (ptr.mode == "text" || e.ctrlKey || e.altKey || e.shiftKey) {
+    return;
+  }
+
+
+  const key = e.key;
+  switch (key) {
+    case 'p':
+      setMode("pencil")
+      break;
+    case 'b':
+      setMode("brush");
+      break;
+    case 'e':
+      setMode("erase");
+      break;
+    case 'd':
+      setMode("dropper");
+      break;
+    case 'z':
+      setMode("zoom");
+      break;
+    case 't':
+      setMode("text");
+      break;
+    case 's':
+      setMode("select");
+      break;
+    case 'f':
+      setMode("bucket");
+      break;
+    case 'g':
+      setMode("spray");
+      break;
+    case 'l':
+      setMode("line");
+      break;
+    case 'k':
+      setMode("shape");
+      break;
+    case 'r':
+      setMode("square");
+      break;
+    case 'o':
+      setMode("circle");
+      break;
+    case 'Escape':
+      ptr.fill = false;
+      brLast = null;
+      break;
+
+    default:
+      // code block
+  }
+
+})
+//--------------
+
+class ColorCell {
+  constructor(tileX, tileY, charX, charY, targetColor, newColor, char) {
+    this.tileX = tileX;
+    this.tileY = tileY;
+    this.charX = charX;
+    this.charY = charY;
+    this.targetColor = targetColor;
+    this.newColor = newColor;
+    this.char = char;
+  }
+
+  onCreate() {
+    const colorCellInfo = getCharInfo(this.tileX, this.tileY, this.charX, this.charY);
+    const editArray = ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
+      [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
+
+    tellEdit.push(editArray); // track local changes
+    writeBuffer.push(editArray); // send edits to server
+    nextObjId++;
+    markCharacterAsUndoable(this.tileX, this.tileY, this.charX, this.charY);
+
+    const nearbyCells = [{
+        charX: this.charX - 1,
+        charY: this.charY
+      },
+      {
+        charX: this.charX + 1,
+        charY: this.charY
+      },
+      {
+        charX: this.charX,
+        charY: this.charY - 1
+      },
+      {
+        charX: this.charX,
+        charY: this.charY + 1
+      },
+    ];
+
+    for (const {
+        charX,
+        charY
+      } of nearbyCells) {
+      const adjustedCharX = charX < 0 ? 15 : charX > 15 ? 0 : charX;
+      const adjustedCharY = charY < 0 ? 7 : charY > 7 ? 0 : charY;
+
+      const newTileX = charX < 0 ? this.tileX - 1 : charX > 15 ? this.tileX + 1 : this.tileX;
+      const newTileY = charY < 0 ? this.tileY - 1 : charY > 7 ? this.tileY + 1 : this.tileY;
+
+      const nearbyCellInfo = getCharInfo(newTileX, newTileY, adjustedCharX, adjustedCharY);
+      const nearbyCellChar = nearbyCellInfo.char;
+      const nearbyCellCharBG = nearbyCellInfo.bgColor;
+      const nearbyCellColor = nearbyCellInfo.color;
+      const nearbyCellTargetColor = ptr.altFill ? nearbyCellInfo.bgColor : nearbyCellInfo.color;
+      if (
+        !cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, this.newColor, this.char)
+      ) {
+
+
+
+        if (this.char == nearbyCellChar && this.targetColor === nearbyCellTargetColor) {
+          if (!cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, nearbyCellChar)) {
+
+            const newColorCell = new ColorCell(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, this.newColor, nearbyCellChar);
+            ptr.cells.push(newColorCell);
+
+          }
+        }
+
+
+      }
+    }
+  }
+}
+
+// Array to store all the cell objects
+
+
+// Function to check if a cell with the same coordinates and color exists in the array
+function cellExistsInArray(tileX, tileY, charX, charY, targetColor, char) {
+  return ptr.cells.some(cell => (
+    cell.tileX === tileX &&
+    cell.tileY === tileY &&
+    cell.charX === charX &&
+    cell.charY === charY &&
+    cell.targetColor === targetColor &&
+    cell.char === char
+  ));
+}
+
+function beginFill(e) {
+
+  let stopped = false;
+  if (ptr.fill) {
+    ptr.fill = false;
+    stopped = true;
+    return;
+  }
+
+  if (stopped) {
+    return
+  }
+  ptr.cells.length = 0;
+  ptr.altFill = e.altKey || e.ctrlKey;
+  const [X, Y, x, y] = currentPosition;
+  const colorCellInfo = getCharInfo(X, Y, x, y);
+  const targetColor = ptr.altFill ? colorCellInfo.bgColor : colorCellInfo.color;
+  const char = colorCellInfo.char;
+  const fillColor = (e.button == 0) ? ptr.color : ptr.bg;
+
+
+  const newColorCell = new ColorCell(X, Y, x, y, targetColor, resolveColorValue(fillColor), char);
+
+  if (!cellExistsInArray(X, Y, x, y, resolveColorValue(fillColor), char)) {
+    ptr.cells.push(newColorCell);
+  }
+  ptr.fill = true;
+  processCell(0);
+}
+
+function processCell(index) {
+  if (!ptr.fill) {
+    return
+  }
+  if (index < ptr.cells.length) {
+    const cell = ptr.cells[index];
+    cell.onCreate();
+    setTimeout(() => {
+      if (!ptr.fill) {
+        return
+      }
+      processCell(index + 1);
+    }, ptr.delay);
+  } else {
+    ptr.fill = false;
+  }
+}
+
+function getRandomPointInCircle(centerX, centerY, radius) {
+  const angle = Math.random() * 2 * Math.PI;
+  const randomRadius = Math.random() * radius;
+  const x = centerX + randomRadius * Math.cos(angle);
+  const y = centerY + randomRadius * Math.sin(angle);
+  return [x, y];
+}
+
+function spray() {
+  if (ptr.mode !== "spray") {
+    return
+  }
+  const [mouseX, mouseY] = currentMousePosition;
+  const maxRadius = ptr.alt ? cellH : ptr.ctrl ? cellH * 2 : cellW;
+  const [pageX, pageY] = getRandomPointInCircle(mouseX, mouseY, maxRadius);
+  const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(pageX, pageY);
+
+  const e = {
+    tileX: tileX,
+    tileY: tileY,
+    charX: charX,
+    charY: charY,
+    pageX: pageX,
+    pageY: pageY,
+  }
+  doPoint(e, "spray", maxRadius)
+}
+
+function mouseToPoint(position = currentMousePosition) {
+  const [mouseX, mouseY] = position;
+  const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(mouseX, mouseY);
+  const e = {
+    tileX: tileX,
+    tileY: tileY,
+    charX: charX,
+    charY: charY,
+    pageX: mouseX,
+    pageY: mouseY,
+  }
+  return e;
+}
+
+function createSquareCoordinates(startX, startY, endX, endY) {
+  // Calculate the width and height of the square
+  const width = Math.abs(endX - startX);
+  const height = Math.abs(endY - startY);
+
+  // Determine the direction of the square (up or down)
+  const directionX = endX > startX ? 1 : -1;
+  const directionY = endY > startY ? 1 : -1;
+
+  // Calculate coordinates for the four corners
+  const topLeft = [startX, startY];
+  const topRight = [startX + width * directionX, startY];
+  const bottomLeft = [startX, startY + height * directionY];
+  const bottomRight = [startX + width * directionX, startY + height * directionY];
+
+  return {
+    topLeft,
+    topRight,
+    bottomLeft,
+    bottomRight
+  };
+}
+
+
+function createOvalCoordinates(startX, startY, endX, endY, isPerfectCircle) {
+  // Calculate the minimum and maximum values for the bounding box
+  const minX = Math.min(startX, endX);
+  const maxX = Math.max(startX, endX);
+  const minY = Math.min(startY, endY);
+  const maxY = Math.max(startY, endY);
+
+  // Calculate the center of the bounding box
+  const centerX = minX + (maxX - minX) / 2;
+  const centerY = minY + (maxY - minY) / 2;
+
+  // Calculate the width and height of the bounding box
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  // Calculate the radius based on whether it's a perfect circle or not
+  const radiusX = isPerfectCircle ? Math.min(width, height) / 2 : width / 2;
+  const radiusY = isPerfectCircle ? radiusX : height / 2;
+
+  const numPoints = 360; // You can adjust the number of points for smoother or coarser ovals
+  const minDistance = ~~(cellH / 4 - 1);
+  const ovalCoordinates = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (i / numPoints) * 2 * Math.PI;
+    const x = centerX + radiusX * Math.cos(angle);
+    const y = centerY + radiusY * Math.sin(angle);
+
+    // Check if the point is at least 'minDistance' pixels away from the previous point
+    if (i === 0 || Math.hypot(x - ovalCoordinates[ovalCoordinates.length - 1][0], y - ovalCoordinates[ovalCoordinates.length - 1][1]) >= minDistance) {
+      ovalCoordinates.push([Math.round(x), Math.round(y)]);
+    }
+  }
+
+  return ovalCoordinates;
+}
+
+function doOval(e) {
+  if (!ptr.line.start) {
+    ptr.line.start = structuredClone(currentMousePosition);
+  } else if (!ptr.line.end) {
+    ptr.line.end = structuredClone(currentMousePosition);
+
+    const [startX, startY] = ptr.line.start;
+    const [endX, endY] = ptr.line.end;
+    const ovalCoordinates = createOvalCoordinates(startX, startY, endX, endY, e.altKey);
+    brLast = null;
+
+    ovalCoordinates.forEach(coord => {
+      doPoint(mouseToPoint(coord), ptr.mode, e.button == 2);
+    });
+
+    ptr.line.start = null;
+    ptr.line.end = null;
+  }
+}
+
+function doSquare(e) {
+  if (!ptr.line.start) {
+    ptr.line.start = structuredClone(currentMousePosition);
+  } else if (!ptr.line.end) {
+    ptr.line.end = structuredClone(currentMousePosition);
+
+    const [startX, startY] = ptr.line.start;
+    const [endX, endY] = ptr.line.end;
+    let {
+      topLeft,
+      topRight,
+      bottomLeft,
+      bottomRight
+    } = createSquareCoordinates(startX, startY, endX, endY);
+
+    topLeft = mouseToPoint(topLeft);
+    topRight = mouseToPoint(topRight);
+    bottomLeft = mouseToPoint(bottomLeft);
+    bottomRight = mouseToPoint(bottomRight);
+
+    brLast = null;
+    doPoint(topLeft, ptr.mode, e.button == 2);
+    doPoint(topRight, ptr.mode, e.button == 2);
+    doPoint(bottomRight, ptr.mode, e.button == 2);
+    doPoint(bottomLeft, ptr.mode, e.button == 2);
+    doPoint(topLeft, ptr.mode, e.button == 2);
+
+    ptr.line.start = null;
+    ptr.line.end = null;
+
+  }
+}
+
+function doLine(e) {
+  if (!ptr.line.start) {
+    ptr.line.start = mouseToPoint();
+    doPoint(ptr.line.start, ptr.mode, e.button == 2)
+  } else if (!ptr.line.end) {
+    ptr.line.end = mouseToPoint();
+    doPoint(ptr.line.end, ptr.mode, e.button == 2)
+  }
+}
+setInterval(spray, 10);
+document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = int_to_hexcode(YourWorld.Color);
+ptr.color = int_to_hexcode(YourWorld.Color);
+
+document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = int_to_hexcode(YourWorld.BgColor);
+ptr.bg = int_to_hexcode(YourWorld.BgColor);
+updateColors();
