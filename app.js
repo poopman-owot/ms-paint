@@ -1,48 +1,102 @@
-//784 added oval tool
-// next: add rounded square tool
+
+// next: star select
 Permissions.can_color_cell = function() {
   return true
 };
-
-function cellToPixel(...cellCoords) {
-  let x, y, z, w;
-
-  if (Array.isArray(cellCoords[0])) {
-    [x = 0, y = 0, z = 0, w = 0] = cellCoords[0];
-  } else if (typeof cellCoords[0] === "object") {
-    if ('tileX' in cellCoords[0]) {
-      x = cellCoords[0].tileX;
+const painter = {
+  brCursor: document.createElement("div"),
+  brDraw: false,
+  brLast: null,
+  isProcessing: false,
+  refTable: [
+    "\u0020", "\uD833\uDEA8", "\uD833\uDEAB", "\uD83E\uDF82", "\uD833\uDD00", "\u2598", "\uD833\uDD01",
+    "\uD833\uDD02", "\uD833\uDD03", "\uD833\uDD04", "\u259D", "\uD833\uDD05", "\uD833\uDD06",
+    "\uD833\uDD07", "\uD833\uDD08", "\u2580", "\uD833\uDD09", "\uD833\uDD0A", "\uD833\uDD0B",
+    "\uD833\uDD0C", "\uD83E\uDFE6", "\uD833\uDD0D", "\uD833\uDD0E", "\uD833\uDD0F", "\uD833\uDD10",
+    "\uD833\uDD11", "\uD833\uDD12", "\uD833\uDD13", "\uD833\uDD14", "\uD833\uDD15", "\uD833\uDD16",
+    "\uD833\uDD17", "\uD833\uDD18", "\uD833\uDD19", "\uD833\uDD1A", "\uD833\uDD1B", "\uD833\uDD1C",
+    "\uD833\uDD1D", "\uD833\uDD1E", "\uD833\uDD1F", "\uD83E\uDFE7", "\uD833\uDD20", "\uD833\uDD21",
+    "\uD833\uDD22", "\uD833\uDD23", "\uD833\uDD24", "\uD833\uDD25", "\uD833\uDD26", "\uD833\uDD27",
+    "\uD833\uDD28", "\uD833\uDD29", "\uD833\uDD2A", "\uD833\uDD2B", "\uD833\uDD2C", "\uD833\uDD2D",
+    "\uD833\uDD2E", "\uD833\uDD2F", "\uD833\uDD30", "\uD833\uDD31", "\uD833\uDD32", "\uD833\uDD33",
+    "\uD833\uDD34", "\uD833\uDD35", "\uD83E\uDF85", "\uD833\uDEA3", "\uD833\uDD36", "\uD833\uDD37",
+    "\uD833\uDD38", "\uD833\uDD39", "\uD833\uDD3A", "\uD833\uDD3B", "\uD833\uDD3C", "\uD833\uDD3D",
+    "\uD833\uDD3E", "\uD833\uDD3F", "\uD833\uDD40", "\uD833\uDD41", "\uD833\uDD42", "\uD833\uDD43",
+    "\uD833\uDD44", "\u2596", "\uD833\uDD45", "\uD833\uDD46", "\uD833\uDD47", "\uD833\uDD48", "\u258C",
+    "\uD833\uDD49", "\uD833\uDD4A", "\uD833\uDD4B", "\uD833\uDD4C", "\u259E", "\uD833\uDD4D",
+    "\uD833\uDD4E", "\uD833\uDD4F", "\uD833\uDD50", "\u259B", "\uD833\uDD51", "\uD833\uDD52",
+    "\uD833\uDD53", "\uD833\uDD54", "\uD833\uDD55", "\uD833\uDD56", "\uD833\uDD57", "\uD833\uDD58",
+    "\uD833\uDD59", "\uD833\uDD5A", "\uD833\uDD5B", "\uD833\uDD5C", "\uD833\uDD5D", "\uD833\uDD5E",
+    "\uD833\uDD5F", "\uD833\uDD60", "\uD833\uDD61", "\uD833\uDD62", "\uD833\uDD63", "\uD833\uDD64",
+    "\uD833\uDD65", "\uD833\uDD66", "\uD833\uDD67", "\uD833\uDD68", "\uD833\uDD69", "\uD833\uDD6A",
+    "\uD833\uDD6B", "\uD833\uDD6C", "\uD833\uDD6D", "\uD833\uDD6E", "\uD833\uDD6F", "\uD833\uDD70",
+    "\uD833\uDEA0", "\uD833\uDD71", "\uD833\uDD72", "\uD833\uDD73", "\uD833\uDD74", "\uD833\uDD75",
+    "\uD833\uDD76", "\uD833\uDD77", "\uD833\uDD78", "\uD833\uDD79", "\uD833\uDD7A", "\uD833\uDD7B",
+    "\uD833\uDD7C", "\uD833\uDD7D", "\uD833\uDD7E", "\uD833\uDD7F", "\uD833\uDD80", "\uD833\uDD81",
+    "\uD833\uDD82", "\uD833\uDD83", "\uD833\uDD84", "\uD833\uDD85", "\uD833\uDD86", "\uD833\uDD87",
+    "\uD833\uDD88", "\uD833\uDD89", "\uD833\uDD8A", "\uD833\uDD8B", "\uD833\uDD8C", "\uD833\uDD8D",
+    "\uD833\uDD8E", "\uD833\uDD8F", "\u2597", "\uD833\uDD90", "\uD833\uDD91", "\uD833\uDD92",
+    "\uD833\uDD93", "\u259A", "\uD833\uDD94", "\uD833\uDD95", "\uD833\uDD96", "\uD833\uDD97", "\u2590",
+    "\uD833\uDD98", "\uD833\uDD99", "\uD833\uDD9A", "\uD833\uDD9B", "\u259C", "\uD833\uDD9C",
+    "\uD833\uDD9D", "\uD833\uDD9E", "\uD833\uDD9F", "\uD833\uDDA0", "\uD833\uDDA1", "\uD833\uDDA2",
+    "\uD833\uDDA3", "\uD833\uDDA4", "\uD833\uDDA5", "\uD833\uDDA6", "\uD833\uDDA7", "\uD833\uDDA8",
+    "\uD833\uDDA9", "\uD833\uDDAA", "\uD833\uDDAB", "\u2582", "\uD833\uDDAC", "\uD833\uDDAD",
+    "\uD833\uDDAE", "\uD833\uDDAF", "\uD833\uDDB0", "\uD833\uDDB1", "\uD833\uDDB2", "\uD833\uDDB3",
+    "\uD833\uDDB4", "\uD833\uDDB5", "\uD833\uDDB6", "\uD833\uDDB7", "\uD833\uDDB8", "\uD833\uDDB9",
+    "\uD833\uDDBA", "\uD833\uDDBB", "\uD833\uDDBC", "\uD833\uDDBD", "\uD833\uDDBE", "\uD833\uDDBF",
+    "\uD833\uDDC0", "\uD833\uDDC1", "\uD833\uDDC2", "\uD833\uDDC3", "\uD833\uDDC4", "\uD833\uDDC5",
+    "\uD833\uDDC6", "\uD833\uDDC7", "\uD833\uDDC8", "\uD833\uDDC9", "\uD833\uDDCA", "\uD833\uDDCB",
+    "\uD833\uDDCC", "\uD833\uDDCD", "\uD833\uDDCE", "\uD833\uDDCF", "\uD833\uDDD0", "\uD833\uDDD1",
+    "\uD833\uDDD2", "\uD833\uDDD3", "\uD833\uDDD4", "\uD833\uDDD5", "\uD833\uDDD6", "\uD833\uDDD7",
+    "\uD833\uDDD8", "\uD833\uDDD9", "\uD833\uDDDA", "\u2584", "\uD833\uDDDB", "\uD833\uDDDC",
+    "\uD833\uDDDD", "\uD833\uDDDE", "\u2599", "\uD833\uDDDF", "\uD833\uDDE0", "\uD833\uDDE1",
+    "\uD833\uDDE2", "\u259F", "\uD833\uDDE3", "\u2586", "\uD833\uDDE4", "\uD833\uDDE5", "\u2588"
+  ],
+  cellToPixel(...cellCoords) {
+    let x, y, z, w;
+    if (Array.isArray(cellCoords[0])) {
+      [x = 0, y = 0, z = 0, w = 0] = cellCoords[0];
+    } else if (typeof cellCoords[0] === "object") {
+      if ('tileX' in cellCoords[0]) {
+        x = cellCoords[0].tileX;
+      }
+      if ('tileY' in cellCoords[0]) {
+        y = cellCoords[0].tileY;
+      }
+      if ('charX' in cellCoords[0]) {
+        z = cellCoords[0].charX;
+      }
+      if ('charY' in cellCoords[0]) {
+        w = cellCoords[0].charY;
+      }
+    } else {
+      [x = 0, y = 0, z = 0, w = 0] = cellCoords;
     }
-    if ('tileY' in cellCoords[0]) {
-      y = cellCoords[0].tileY;
+
+    if (cellCoords.length > 4 || x === undefined || y === undefined || z === undefined || w === undefined) {
+      console.error(`CellToPixelCoords: Invalid cellCoords. Arguments can either be ([x, y, z, w]) or (x,y,z,w) or an object with tileX, tileY, charX, charY. Your cellCoords was: ${cellCoords}`);
+      return;
     }
-    if ('charX' in cellCoords[0]) {
-      z = cellCoords[0].charX;
-    }
-    if ('charY' in cellCoords[0]) {
-      w = cellCoords[0].charY;
-    }
-  } else {
-    [x = 0, y = 0, z = 0, w = 0] = cellCoords;
-  }
-
-  if (cellCoords.length > 4 || x === undefined || y === undefined || z === undefined || w === undefined) {
-    console.error(`CellToPixelCoords: Invalid cellCoords. Arguments can either be ([x, y, z, w]) or (x,y,z,w) or an object with tileX, tileY, charX, charY. Your cellCoords was: ${cellCoords}`);
-    return;
-  }
-
-  const X = Math.round(x) * tileW + z * cellW + Math.round(positionX) + Math.round(owotWidth / 2);
-  const Y = Math.round(y) * tileH + w * cellH + Math.round(positionY) + Math.round(owotHeight / 2);
-
-  return [X, Y];
-}
-
-function subtract(source = [0], subtractBy = 0, roundResult = false) {
-  if (Array.isArray(source)) {
-    if (Array.isArray(subtractBy)) {
-      if (source.length === subtractBy.length) {
-        const resultArray = source.map((value, index) => {
-          let result = value - subtractBy[index];
+    const X = Math.round(x) * tileW + z * cellW + Math.round(positionX) + Math.round(owotWidth / 2);
+    const Y = Math.round(y) * tileH + w * cellH + Math.round(positionY) + Math.round(owotHeight / 2);
+    return [X, Y];
+  },
+  subtract(source = [0], subtractBy = 0, roundResult = false) {
+    if (Array.isArray(source)) {
+      if (Array.isArray(subtractBy)) {
+        if (source.length === subtractBy.length) {
+          const resultArray = source.map((value, index) => {
+            let result = value - subtractBy[index];
+            if (roundResult) {
+              result = Math.round(result);
+            }
+            return result;
+          });
+          return resultArray;
+        }
+      } else if (typeof subtractBy === 'number') {
+        const resultArray = source.map((value) => {
+          let result = value - subtractBy;
           if (roundResult) {
             result = Math.round(result);
           }
@@ -50,111 +104,98 @@ function subtract(source = [0], subtractBy = 0, roundResult = false) {
         });
         return resultArray;
       }
-    } else if (typeof subtractBy === 'number') {
-      const resultArray = source.map((value) => {
-        let result = value - subtractBy;
-        if (roundResult) {
-          result = Math.round(result);
-        }
-        return result;
-      });
-      return resultArray;
-    }
-  } else if (typeof source === 'object' && typeof subtractBy === 'object') {
-    const resultObject = {};
-    for (const key in source) {
-      if (subtractBy.hasOwnProperty(key)) {
-        resultObject[key] = source[key] - subtractBy[key];
-        if (roundResult) {
-          resultObject[key] = Math.round(resultObject[key]);
+    } else if (typeof source === 'object' && typeof subtractBy === 'object') {
+      const resultObject = {};
+      for (const key in source) {
+        if (subtractBy.hasOwnProperty(key)) {
+          resultObject[key] = source[key] - subtractBy[key];
+          if (roundResult) {
+            resultObject[key] = Math.round(resultObject[key]);
+          }
         }
       }
+      return resultObject;
     }
-    return resultObject;
-  }
-}
+  },
+  lerp(start = 0, end = 0, amt = 0.5, roundResult = false) {
+    if (typeof start === 'object' && typeof end === 'object') {
+      if (Array.isArray(start)) {
+        return start.map((value, i) => painter.lerp(value, end[i], amt, roundResult));
+      }
+      const resultObject = {};
+      for (const key in start) {
+        if (end.hasOwnProperty(key)) {
+          resultObject[key] = painter.lerp(start[key], end[key], amt, roundResult);
+        }
+      }
+      return resultObject;
+    }
 
-function lerp(start = 0, end = 0, amt = 0.5, roundResult = false) {
-  if (typeof start === 'object' && typeof end === 'object') {
     if (Array.isArray(start)) {
-      return start.map((value, i) => lerp(value, end[i], amt, roundResult));
-    }
-    const resultObject = {};
-    for (const key in start) {
-      if (end.hasOwnProperty(key)) {
-        resultObject[key] = lerp(start[key], end[key], amt, roundResult);
+      if (typeof end === 'number') {
+        return start.map((value) => painter.lerp(value, end, amt, roundResult));
+      }
+      if (Array.isArray(end)) {
+        if (end.length === 1) {
+          return start.map((value) => painter.lerp(value, end[0], amt, roundResult));
+        }
+        if (start.length === end.length) {
+          return start.map((value, i) => painter.lerp(value, end[i], amt, roundResult));
+        }
       }
     }
-    return resultObject;
-  }
 
-  if (Array.isArray(start)) {
-    if (typeof end === 'number') {
-      return start.map((value) => lerp(value, end, amt, roundResult));
-    }
-    if (Array.isArray(end)) {
-      if (end.length === 1) {
-        return start.map((value) => lerp(value, end[0], amt, roundResult));
-      }
-      if (start.length === end.length) {
-        return start.map((value, i) => lerp(value, end[i], amt, roundResult));
+    let value = (1 - amt) * start + amt * end;
+    if (roundResult !== false) {
+      if (typeof roundResult === 'number') {
+        const factor = 1 / roundResult;
+        value = Math.round(value * factor) / factor;
+      } else {
+        value = Math.round(value);
       }
     }
-  }
-
-  let value = (1 - amt) * start + amt * end;
-  if (roundResult !== false) {
-    if (typeof roundResult === 'number') {
-      const factor = 1 / roundResult;
-      value = Math.round(value * factor) / factor;
-    } else {
-      value = Math.round(value);
-    }
-  }
-  return value;
-}
-
-function scrollWorld(offset = [0, 0]) {
-  const [x, y] = offset
-  const deltaX = x;
-  const deltaY = y;
-
-  positionY -= deltaY;
-  positionX -= deltaX;
-
-  w.emit("scroll", {
-    deltaX: -deltaX,
-    deltaY: -deltaY
-  });
-
-  return [deltaY, deltaX];
-}
-
-
-const ptr = {
-
-  mouse: {
-    downLeft: false,
-    downRight: false,
-    draw: false,
+    return value;
   },
-  line: {
-    start: null,
-    end: null
+  scrollWorld(offset = [0, 0]) {
+    const [x, y] = offset
+    const deltaX = x;
+    const deltaY = y;
+    positionY -= deltaY;
+    positionX -= deltaX;
+    w.emit("scroll", {
+      deltaX: -deltaX,
+      deltaY: -deltaY
+    });
+    return [deltaY, deltaX];
   },
-  ctrl: false,
-  alt: false,
-  shift: false,
-  fill: false,
-  altFill: false,
-  delay: 10,
-  cells: [],
-  color: YourWorld.Color,
-  bg: YourWorld.BgColor == -1 ? "#ffffff" : YourWorld.BgColor,
-  mode: 'text',
-  html: `<div id="o-ptr-info-container">
+  ptr: {
+    writeBuffer: [],
+    mouse: {
+      downLeft: false,
+      downRight: false,
+      draw: false,
+    },
+    line: {
+      start: null,
+      end: null
+    },
+    drawMode: 0,
+    curveControlPoints: [],
+    corner: 0.2,
+    controlPointPower: 1,
+    ctrl: false,
+    alt: false,
+    shift: false,
+    fill: false,
+    altFill: false,
+    delay: 10,
+    cells: [],
+    color: YourWorld.Color,
+    bg: YourWorld.BgColor == -1 ? "#ffffff" : YourWorld.BgColor,
+    mode: 'text',
+    html: `<div id="o-ptr-info-container">
   <div id="o-ptr-info-top">
-    <p id="o-ptr-info-title">Text Tool (t)</p><input type="button" onclick="toggleInfo()" value="hide">
+    <p id="o-ptr-info-title">Text Tool (t)</p><input type="button" onclick="painter.toggleInfo()" value="hide">
 
   </div>
   <div id="o-ptr-info-section">
@@ -215,14 +256,37 @@ const ptr = {
       <div id="info-square" class="">
         <div>Default action: <span>Draws a rectangle shape</span></div>
         <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Alt: <span>Perfect Square</span></div>
         <div>Left-click: <span>Primary color</span></div>
         <div>Right-click: <span>Secondary color</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-curve" class="">
+        <div>Default action: <span>Draws a quadratic curve</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Alt: <span>Ends and commits the curve</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+        <div>0-9: <span>Sets control point power</span></div>
+				<div>Esc: <span>Restart Tool</span></div>
+      </div>
+
+      <div id="info-rounded" class="">
+        <div>Default action: <span>Draws a rounded rectangle shape</span></div>
+        <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Alt: <span>Perfect Rounded Square</span></div>
+        <div>Shift: <span>Even Corners</span></div>
+        <div>Left-click: <span>Primary color</span></div>
+        <div>Right-click: <span>Secondary color</span></div>
+				<div>0-9: <span>Sets corner rounding percent</span></div>
 				<div>Esc: <span>Restart Tool</span></div>
       </div>
 
       <div id="info-circle" class="">
         <div>Default action: <span>Draws an oval shape</span></div>
         <div>Ctrl: <span>Draws a full cell</span></div>
+        <div>Alt: <span>Perfect Circle</span></div>
         <div>Left-click: <span>Primary color</span></div>
         <div>Right-click: <span>Secondary color</span></div>
 				<div>Esc: <span>Restart Tool</span></div>
@@ -258,7 +322,7 @@ const ptr = {
     <div class="o-ptr-window-bar-btn">Edit</div>
     <div class="o-ptr-window-bar-btn">View
       <div class="ptr-dropdown">
-        <input type="button" onclick="toggleInfo()" value="Toggle Info Window">
+        <input type="button" onclick="painter.toggleInfo()" value="Toggle Info Window">
       </div>
     </div>
     <div class="o-ptr-window-bar-btn">Image</div>
@@ -267,49 +331,49 @@ const ptr = {
   </div>
 </div>
 <div id="o-ptr-side-container">
-  <div data-value="star-select" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-  <div data-value="select" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="erase" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="bucket" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="dropper" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="zoom" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="pencil" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="brush" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="spray" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="text" onclick="handleToolClick(this)" class="o-ptr-tool-btn active"></div>
-  <div data-value="line" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="curve" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-  <div data-value="square" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="shape" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="circle" onclick="handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="rounded" onclick="handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
+  <div data-value="star-select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
+  <div data-value="select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="erase" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="bucket" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="dropper" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="zoom" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="pencil" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="brush" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="spray" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="text" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn active"></div>
+  <div data-value="line" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="curve" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="square" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="shape" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="circle" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div data-value="rounded" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
 </div>
 <div id="o-ptr-bottom-container">
-  <div onclick="handleColorClick(this)" id="o-ptr-color-switch">
+  <div onclick="painter.handleColorClick(this)" id="o-ptr-color-switch">
     <div class="o-ptr-color-switch-prev bg"></div>
     <div class="o-ptr-color-switch-prev main"></div>
   </div>
-  <input oninput="handleColorChange(this)" type="color" value="#000000">
-  <input oninput="handleColorChange(this)" type="color" value="#ffffff">
-  <input oninput="handleColorChange(this)" type="color" value="#ff0000">
-  <input oninput="handleColorChange(this)" type="color" value="#ff5900">
-  <input oninput="handleColorChange(this)" type="color" value="#ffae00">
-  <input oninput="handleColorChange(this)" type="color" value="#ffd500">
-  <input oninput="handleColorChange(this)" type="color" value="#b5f73b">
-  <input oninput="handleColorChange(this)" type="color" value="#48f73b">
-  <input oninput="handleColorChange(this)" type="color" value="#3bf7af">
-  <input oninput="handleColorChange(this)" type="color" value="#3bf4f7">
-  <input oninput="handleColorChange(this)" type="color" value="#3bd1f7">
-  <input oninput="handleColorChange(this)" type="color" value="#3b9cf7">
-  <input oninput="handleColorChange(this)" type="color" value="#3b41f7">
-  <input oninput="handleColorChange(this)" type="color" value="#903bf7">
-  <input oninput="handleColorChange(this)" type="color" value="#ce3bf7">
-  <input oninput="handleColorChange(this)" type="color" value="#f73ba9">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#000000">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ffffff">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ff0000">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ff5900">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ffae00">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ffd500">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#b5f73b">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#48f73b">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#3bf7af">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#3bf4f7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#3bd1f7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#3b9cf7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#3b41f7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#903bf7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#ce3bf7">
+  <input oninput="painter.handleColorChange(this)" type="color" value="#f73ba9">
 </div>
 
 
 `,
-  css: `#o-ptr-container {
+    css: `#o-ptr-container {
   display: block;
   top: 0px;
   position: fixed;
@@ -605,418 +669,880 @@ pointer-events :none;
 display:none !important
 }
 `,
-  elements: {
-    container: document.createElement("div"),
-    style: document.createElement("style"),
-  }
-}
-ptr.elements.container.id = 'o-ptr-container';
-ptr.elements.container.innerHTML = ptr.html;
-elm.main_view.appendChild(ptr.elements.container);
-
-ptr.elements.style.textContent = ptr.css;
-document.head.appendChild(ptr.elements.style);
-
-
-
-function setPtrMouse(e, down) {
-  ptr.mouse.downRight = false;
-  ptr.mouse.downLeft = false;
-  if (e.button == 2) {
-    ptr.mouse.downRight = down;
-  } //right-click
-  else if (e.button == 0) {
-    ptr.mouse.downLeft = down;
-  } //left-click
-}
-
-function startEyeDropper(e) {
-  if (!e.altKey || !window.EyeDropper) {
-    const [x, y, z, w] = getTileCoordsFromMouseCoords(e.x, e.y)
-    const chr = getCharInfo(x, y, z, w);
-    const keysToInclude = ["public", "member", "owner"];
-    const protectionArray = keysToInclude.map(key => styles[key]);
-    const cellColor = resolveColorValue(protectionArray[getCharInfoXY(x, y, z, w).protection]);
-    const emptyChar = ((chr.char.trim().length == 0 || [6158, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8239, 8287, 8288, 12288, 10240, 12644, 65279, 32].includes(chr.char.charCodeAt()) || chr.color === cellColor));
-    const emptyBg = resolveColorValue(chr.bgColor) == cellColor || chr.bgColor == -1;
-    let c = emptyChar && emptyBg ? cellColor : emptyChar ? int_to_hexcode(getCharBgColor(x, y, z, w)) : int_to_hexcode(getCharColor(x, y, z, w));
-    if (typeof c == "number") {
-      c = int_to_hexcode(c);
+    elements: {
+      container: document.createElement("div"),
+      style: document.createElement("style"),
     }
-
-    if (e.button == 0) {
-      ptr.color = c
-
-    } else {
-      ptr.bg = c
-
+  },
+  setPtrMouse(e, down) {
+    painter.ptr.mouse.downRight = false;
+    painter.ptr.mouse.downLeft = false;
+    if (e.button == 2) {
+      painter.ptr.mouse.downRight = down;
+    } //right-click
+    else if (e.button == 0) {
+      painter.ptr.mouse.downLeft = down;
+    } //left-click
+  },
+  startEyeDropper(e) {
+    if (!e.altKey || !window.EyeDropper) {
+      const [x, y, z, w] = getTileCoordsFromMouseCoords(e.x, e.y)
+      const chr = getCharInfo(x, y, z, w);
+      const keysToInclude = ["public", "member", "owner"];
+      const protectionArray = keysToInclude.map(key => styles[key]);
+      const cellColor = resolveColorValue(protectionArray[getCharInfoXY(x, y, z, w).protection]);
+      const emptyChar = ((chr.char.trim().length == 0 || [6158, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8239, 8287, 8288, 12288, 10240, 12644, 65279, 32].includes(chr.char.charCodeAt()) || chr.color === cellColor));
+      const emptyBg = resolveColorValue(chr.bgColor) == cellColor || chr.bgColor == -1;
+      let c = emptyChar && emptyBg ? cellColor : emptyChar ? int_to_hexcode(getCharBgColor(x, y, z, w)) : int_to_hexcode(getCharColor(x, y, z, w));
+      if (typeof c == "number") {
+        c = int_to_hexcode(c);
+      }
+      if (e.button == 0) {
+        painter.ptr.color = c
+      } else {
+        painter.ptr.bg = c
+      }
+      document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = painter.ptr.color == 0 ? "#000000" : painter.ptr.color == -1 ? "#ffffff" : painter.ptr.color;
+      document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = painter.ptr.bg == 0 ? "#000000" : painter.ptr.bg == -1 ? "#ffffff" : painter.ptr.bg;
+      painter.updateColors();
+      return
     }
-    document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = ptr.color == 0 ? "#000000" : ptr.color == -1 ? "#ffffff" : ptr.color;
-    document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = ptr.bg == 0 ? "#000000" : ptr.bg == -1 ? "#ffffff" : ptr.bg;
-    updateColors();
-    return
-  }
-  const eyeDropper = new EyeDropper();
-  eyeDropper
-    .open()
-    .then((result) => {
-      ptr.color = result.sRGBHex
-      document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = ptr.color == 0 ? "#000000" : ptr.color == -1 ? "#ffffff" : ptr.color;
-      updateColors();
+    const eyeDropper = new EyeDropper();
+    eyeDropper
+      .open()
+      .then((result) => {
+        painter.ptr.color = result.sRGBHex
+        document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = painter.ptr.color == 0 ? "#000000" : painter.ptr.color == -1 ? "#ffffff" : painter.ptr.color;
+        painter.updateColors();
+      })
+      .catch((e) => {});
+  },
+  preventChatOverlay() {
+    setTimeout(function() {
+      let left = parseInt(chat_window.style.left, 10);
+      let bottom = parseInt(chat_window.style.bottom, 10);
+      let maxHeight = (owotHeight - 22);
+      chat_window.style.left = left < 71 ? "71px" : chat_window.style.left;
+      const currentBottom = (owotHeight - (chat_window.offsetTop + chat_window.offsetHeight))
+      chat_window.style.top = currentBottom < 22 ? (chat_window.offsetTop - 22) + "px" : chat_window.style.top;
+      chat_window.style.bottom = "";
+    }, 1)
+  },
+  clearCanvasClass() {
+    owot.classList.forEach(function(e) {
+      if (e !== "screen_canvas") {
+        owot.classList.remove(e);
+      }
     })
-    .catch((e) => {});
-}
-
-
-function preventChatOverlay() {
-  setTimeout(function() {
-    let left = parseInt(chat_window.style.left, 10);
-    let bottom = parseInt(chat_window.style.bottom, 10);
-    let maxHeight = (owotHeight - 22);
-    chat_window.style.left = left < 71 ? "71px" : chat_window.style.left;
-    const currentBottom = (owotHeight - (chat_window.offsetTop + chat_window.offsetHeight))
-    chat_window.style.top = currentBottom < 22 ? (chat_window.offsetTop - 22) + "px" : chat_window.style.top;
-    chat_window.style.bottom = "";
-  }, 1)
-}
-
-
-
-function clearCanvasClass() {
-  owot.classList.forEach(function(e) {
-    if (e !== "screen_canvas") {
-      owot.classList.remove(e);
+  },
+  setActiveTool(el) {
+    document.querySelectorAll(".o-ptr-tool-btn.active").forEach(function(e) {
+      e.classList.remove("active")
+    });
+    el.classList.add("active");
+  },
+  handleColorClick(e) {
+    let isSwitcher;
+    if (e.target) {
+      if (e.target.classList) {
+        isSwitcher = e.target.classList.contains("o-ptr-color-switch-prev");
+      }
+      if (isSwitcher) {
+        let a = structuredClone(painter.ptr.color);
+        let b = structuredClone(painter.ptr.bg);
+        painter.ptr.color = b;
+        painter.ptr.bg = a;
+        document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = painter.ptr.color == 0 ? "#000000" : painter.ptr.color == -1 ? "#ffffff" : painter.ptr.color;
+        document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = painter.ptr.bg == 0 ? "#000000" : painter.ptr.bg == -1 ? "#ffffff" : painter.ptr.bg;
+        painter.updateColors();
+      } else {
+        painter.setPtrMouse(e, true);
+        var inputElement = e.target.closest('input');
+        if (inputElement) {
+          const val = inputElement.value;
+          if (painter.ptr.mouse.downLeft) {
+            document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = val;
+            painter.ptr.color = val;
+          } else if (painter.ptr.mouse.downRight) {
+            inputElement.click();
+            document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = val;
+            painter.ptr.bg = val;
+          }
+        }
+        painter.updateColors();
+      }
     }
-  })
-}
-
-function setActiveTool(el) {
-  document.querySelectorAll(".o-ptr-tool-btn.active").forEach(function(e) {
-    e.classList.remove("active")
-  });
-  el.classList.add("active");
-}
-
-function handleColorClick(e) {
-  let isSwitcher;
-  if (e.target) {
-    if (e.target.classList) {
-      isSwitcher = e.target.classList.contains("o-ptr-color-switch-prev");
+  },
+  handleColorChange(el) {
+    if (painter.ptr.mouse.downLeft) {
+      document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = el.value;
+      painter.ptr.color = el.value;
+    } else if (painter.ptr.mouse.downRight) {
+      document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = el.value;
+      painter.ptr.bg = el.value;
     }
-    if (isSwitcher) {
-      let a = structuredClone(ptr.color);
-      let b = structuredClone(ptr.bg);
-      ptr.color = b;
-      ptr.bg = a;
-      document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = ptr.color == 0 ? "#000000" : ptr.color == -1 ? "#ffffff" : ptr.color;
-      document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = ptr.bg == 0 ? "#000000" : ptr.bg == -1 ? "#ffffff" : ptr.bg;
-      updateColors();
-    } else {
-      setPtrMouse(e, true);
-      var inputElement = e.target.closest('input');
-      if (inputElement) {
-        const val = inputElement.value;
-        if (ptr.mouse.downLeft) {
-          document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = val;
-          ptr.color = val;
-        } else if (ptr.mouse.downRight) {
-          inputElement.click();
-          document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = val;
-          ptr.bg = val;
+    painter.updateColors();
+  },
+  updateColors() {
+    YourWorld.Color = (painter.ptr.color == -1 || painter.ptr.color == '#ffffff') ? resolveColorValue('#ffffff') : resolveColorValue(painter.ptr.color);
+    YourWorld.BgColor = (painter.ptr.bg == -1 || painter.ptr.bg == '#ffffff') ? -1 : resolveColorValue(painter.ptr.bg);
+  },
+  toggleInfo() {
+    document.querySelector("#o-ptr-info-container").classList.toggle("hidden");
+  },
+  handleToolClick(el) {
+    const toolType = el.getAttribute("data-value");
+    painter.setActiveTool(el)
+    painter.clearCanvasClass();
+    w.disableCursor();
+    w.disableDragging();
+    w.regionSelect.stopSelectionUI();
+    painter.brLast = null;
+    painter.ptr.fill = false;
+    painter.ptr.curveControlPoints.length = 0;
+    painter.ptr.cells.length = 0;
+    painter.ptr.line.start = null;
+    painter.ptr.line.end = null;
+    painter.ptr.ctrl = false;
+    painter.ptr.alt = false;
+    painter.ptr.shift = false;
+    painter.ptr.mode = toolType;
+    painter.ptr.writeBuffer.length = 0;
+    switch (toolType) {
+      case "select":
+        owot.classList.add("precise-icon");
+        w.regionSelect.startSelection();
+        document.querySelector(`#o-ptr-info-title`).innerText = "Select Tool (s)";
+        break;
+      case "erase":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Erase Tool (e)";
+        break;
+      case "dropper":
+        owot.classList.add("dropper-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Dropper tool (d)";
+        break;
+      case "zoom":
+        owot.classList.add("zoom-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Zoom Tool (z)";
+        break;
+      case "pencil":
+        owot.classList.add("pencil-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Pencil Tool (p)";
+        break;
+      case "bucket":
+        owot.classList.add("bucket-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Fill Tool (f)";
+        break;
+      case "brush":
+        document.querySelector(`#o-ptr-info-title`).innerText = "Brush Tool (b)";
+        break;
+      case "spray":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Graffiti Tool (g)";
+        break;
+      case "line":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Line Tool (l)";
+        break;
+      case "shape":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Shape Tool (k)";
+        break;
+      case "square":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Rectangle Tool (r)";
+        break;
+      case "circle":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Oval Tool (o)";
+        break;
+      case "rounded":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Rounded Rectangle Tool (w)";
+        break;
+      case "curve":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Quadratic Curve Tool (q)";
+        break;
+      case "text":
+        document.querySelector(`#o-ptr-info-title`).innerText = "Text Tool (t)";
+        w.enableDragging();
+        w.enableCursor();
+        break;
+      default:
+        // code block
+    }
+    document.querySelector("#o-ptr-info-list .active")?.classList.remove("active");
+    document.querySelector(`#info-${painter.ptr.mode}`)?.classList.add("active");
+  },
+  applyDot(chr, x, y, erase) {
+    var idx = painter.refTable.indexOf(chr);
+    if (idx == -1) return chr;
+    var pos = y * 2 + x;
+    pos = 1 << pos;
+    if (painter.ptr.drawMode == 0) {
+      return painter.refTable[idx | pos];
+    } else if (painter.ptr.drawMode == 1) {
+      return painter.refTable[idx & (255 - pos)];
+    }
+    return chr;
+  },
+  processQueue() {
+    if (painter.ptr.writeBuffer.length > 0 && !painter.isProcessing) {
+      painter.isProcessing = true;
+      const {
+        e,
+        forcemode,
+        param
+      } = painter.ptr.writeBuffer.shift();
+
+      painter.processPoint(e, forcemode, param);
+
+      setTimeout(() => {
+        painter.isProcessing = false;
+        painter.processQueue(); // Process the next call in the queue
+      }, !("spray erase".includes(painter.ptr.mode)) << 3); // Set the throttle interval to 10ms
+    }
+  },
+  doPoint(e, forcemode, param) {
+    if (!e || "line shape square circle rounded curve".includes(painter.ptr.mode) && forcemode !== painter.ptr.mode) {
+      return
+    }
+
+    painter.ptr.writeBuffer.push({
+      e,
+      forcemode,
+      param
+    });
+
+
+  },
+  processPoint(e, forcemode, param) {
+
+    if (!e || "line shape square circle rounded curve".includes(painter.ptr.mode) && forcemode !== painter.ptr.mode) {
+      return
+    }
+
+    var tileX = e.tileX;
+    var tileY = e.tileY;
+    var charX = e.charX;
+    var charY = e.charY;
+
+    var halfX = Math.floor(owotWidth / 2);
+    var halfY = Math.floor(owotHeight / 2);
+    var pageX = e.pageX - halfX;
+    var pageY = e.pageY - halfY;
+
+    // get absolute x/y mouse position
+    var absX = pageX - positionX;
+    var absY = pageY - positionY;
+
+    // screen size of braille dot
+    var segW = cellW / 2;
+    var segH = cellH / 4;
+
+    // absolute dot position
+    var absBrX = Math.floor(absX / segW);
+    var absBrY = Math.floor(absY / segH);
+    var absBrX_L = Math.floor(absX / cellW);
+    var absBrY_L = Math.floor(absY / cellH);
+    const altType = painter.ptr.shift || painter.ptr.mode == "brush"
+    const [mouseX, mouseY] = currentMousePosition;
+    const radius = altType ? param + cellH : param + (cellW / 2);
+    painter.brCursor.style.borderRadius = painter.ptr.mode == "spray" ? "100%" : "0%"
+    painter.brCursor.style.width = painter.ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellW + "px" : Math.ceil(cellW / 2) + "px";
+    painter.brCursor.style.height = painter.ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellH + "px" : Math.ceil(cellH / 4) + "px";
+    painter.brCursor.style.left = painter.ptr.mode == "spray" ? mouseX - radius + "px" : altType ? (cellW * absBrX_L + halfX + positionX) + "px" : (segW * absBrX + halfX + positionX) + "px";
+    painter.brCursor.style.top = painter.ptr.mode == "spray" ? mouseY - radius + "px" : altType ? (cellH * absBrY_L + halfY + positionY) + "px" : (segH * absBrY + halfY + positionY) + "px";
+    painter.brCursor.style.opacity = "pencil erase brush spray line shape square circle rounded curve".includes(painter.ptr.mode) ? 1 : 0;
+
+
+    if (!painter.ptr.mouse.draw && !("line shape square circle rounded curve".includes(forcemode)) || !"pencil erase brush spray line shape square circle rounded curve".includes(painter.ptr.mode) || painter.ptr.mode == "spray" && forcemode !== "spray") {
+      painter.brLast = null;
+      return;
+    }
+
+    if (painter.brLast || painter.ptr.mode == "spray" && forcemode == "spray" || painter.ptr.mode == "pencil" && forcemode == "single") {
+      var line = forcemode == "spray" || forcemode == "single" ?
+        lineGen(absBrX, absBrY, absBrX, absBrY) :
+        lineGen(painter.brLast[0], painter.brLast[1], absBrX, absBrY);
+
+      function processNextPixel(i) {
+        if (i < line.length) {
+          var pixel = line[i];
+          var abrX = pixel[0];
+          var abrY = pixel[1];
+          var cx = Math.floor(abrX / 2);
+          var cy = Math.floor(abrY / 4);
+          var brX = abrX - Math.floor(abrX / 2) * 2;
+          var brY = abrY - Math.floor(abrY / 4) * 4;
+          var chr = getCharInfoXY(cx, cy);
+          const erasing = painter.ptr.mode == "erase";
+          const brush = painter.ptr.mode == "brush";
+          const keysToInclude = ["public", "member", "owner"];
+          const protectionArray = keysToInclude.map(key => styles[key]);
+          const cellColor = resolveColorValue(protectionArray[getCharInfoXY().protection]);
+          const drawColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? chr.color : painter.ptr.mouse.downRight || "line shape square circle rounded curve".includes(painter.ptr.mode) && param ? resolveColorValue(painter.ptr.bg) : resolveColorValue(painter.ptr.color);
+          painter.ptr.drawMode = erasing ? 1 : Number(drawColor == cellColor);
+          const dotChr = (() => {
+            if (brush) {
+              return chr.char;
+            }
+            if (erasing) {
+              return painter.ptr.ctrl ? " " : painter.applyDot(chr.char, brX, brY);
+            }
+            return painter.ptr.ctrl ? (painter.ptr.mouse.downRight ? (painter.ptr.drawMode === 1 ? " " : "█") : "█") : painter.applyDot(chr.char, brX, brY);
+          })();
+          const charColor = painter.ptr.drawMode ? brush ? chr.color : chr.color : drawColor;
+          const charBgColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? painter.ptr.mouse.downRight ? resolveColorValue(painter.ptr.bg) : resolveColorValue(painter.ptr.color) : chr.bgColor;
+          writeCharToXY(dotChr, charColor, cx, cy, charBgColor);
+
+          setTimeout(function() {
+            processNextPixel(i + 1);
+          }, 10);
         }
       }
-      updateColors();
+
+      processNextPixel(0);
     }
-  }
-}
+    painter.brLast = [absBrX, absBrY];
+    if (painter.ptr.line.start && painter.ptr.line.end) {
 
-function handleColorChange(el) {
-  if (ptr.mouse.downLeft) {
-    document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = el.value;
-    ptr.color = el.value;
-  } else if (ptr.mouse.downRight) {
-    document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = el.value;
-    ptr.bg = el.value;
-  }
-  updateColors();
-}
+      if ("line".includes(painter.ptr.mode)) {
+        painter.ptr.line.start = painter.ptr.line.end = null;
+        painter.brLast = null;
+      } else if (painter.ptr.mode == "shape") {
+        painter.ptr.line.start = painter.ptr.line.end = null;
+      }
+    }
+  },
 
-function updateColors() {
-  YourWorld.Color = (ptr.color == -1 || ptr.color == '#ffffff') ? resolveColorValue('#ffffff') : resolveColorValue(ptr.color);
-  YourWorld.BgColor = (ptr.bg == -1 || ptr.bg == '#ffffff') ? -1 : resolveColorValue(ptr.bg);
-}
+  moveElement(menuObject, pos) {
+    const checkboxEl = menu.entries[menuObject - 1].element;
+    const navUl = elm.nav_elm.children[0];
+    const referenceNode = navUl.children[pos];
+    navUl.insertBefore(checkboxEl, referenceNode);
+    return checkboxEl;
+  },
+  setMode(mode) {
+    document.querySelector(`.o-ptr-tool-btn[data-value="${mode}"]`).click();
+  },
+  ColorCell: class {
+    constructor(tileX, tileY, charX, charY, targetColor, newColor, char) {
+      this.tileX = tileX;
+      this.tileY = tileY;
+      this.charX = charX;
+      this.charY = charY;
+      this.targetColor = targetColor;
+      this.newColor = newColor;
+      this.char = char;
+    }
 
-function toggleInfo() {
-  document.querySelector("#o-ptr-info-container").classList.toggle("hidden");
-}
+    onCreate() {
+      const colorCellInfo = getCharInfo(this.tileX, this.tileY, this.charX, this.charY);
+      const editArray = painter.ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
+        [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
 
-function handleToolClick(el) {
-  const toolType = el.getAttribute("data-value");
-  setActiveTool(el)
-  clearCanvasClass();
-  w.disableCursor();
-  w.disableDragging();
-  w.regionSelect.stopSelectionUI();
-  brLast = null;
-  ptr.mode = toolType;
-  switch (toolType) {
-    case "select":
-      owot.classList.add("precise-icon");
-      w.regionSelect.startSelection();
-      document.querySelector(`#o-ptr-info-title`).innerText = "Select Tool (s)";
-      break;
-    case "erase":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Erase Tool (e)";
-      break;
-    case "dropper":
-      owot.classList.add("dropper-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Dropper tool (d)";
-      break;
-    case "zoom":
-      owot.classList.add("zoom-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Zoom Tool (z)";
-      break;
-    case "pencil":
-      owot.classList.add("pencil-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Pencil Tool (p)";
-      break;
-    case "bucket":
-      owot.classList.add("bucket-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Fill Tool (f)";
-      break;
-    case "brush":
-      document.querySelector(`#o-ptr-info-title`).innerText = "Brush Tool (b)";
-      break;
-    case "spray":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Graffiti Tool (g)";
-      break;
-    case "line":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Line Tool (l)";
-      break;
-    case "shape":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Shape Tool (k)";
-      break;
-    case "square":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Rectangle Tool (r)";
-      break;
-    case "circle":
-      owot.classList.add("precise-icon");
-      document.querySelector(`#o-ptr-info-title`).innerText = "Oval Tool (o)";
-      break;
-    case "text":
-      document.querySelector(`#o-ptr-info-title`).innerText = "Text Tool (t)";
-      w.enableDragging();
-      w.enableCursor();
-      break;
-    default:
-      // code block
-  }
+      tellEdit.push(editArray); // track local changes
+      writeBuffer.push(editArray); // send edits to server
+      nextObjId++;
+      markCharacterAsUndoable(this.tileX, this.tileY, this.charX, this.charY);
 
-  document.querySelector("#o-ptr-info-list .active")?.classList.remove("active");
-  document.querySelector(`#info-${ptr.mode}`)?.classList.add("active");
-}
+      const nearbyCells = [{
+          charX: this.charX - 1,
+          charY: this.charY
+        },
+        {
+          charX: this.charX + 1,
+          charY: this.charY
+        },
+        {
+          charX: this.charX,
+          charY: this.charY - 1
+        },
+        {
+          charX: this.charX,
+          charY: this.charY + 1
+        },
+      ];
 
-var mode = 0; // 0 = draw, 1 = delete
+      for (const {
+          charX,
+          charY
+        } of nearbyCells) {
+        const adjustedCharX = charX < 0 ? 15 : charX > 15 ? 0 : charX;
+        const adjustedCharY = charY < 0 ? 7 : charY > 7 ? 0 : charY;
 
-var refTable = [
-  "\u0020", "\uD833\uDEA8", "\uD833\uDEAB", "\uD83E\uDF82", "\uD833\uDD00", "\u2598", "\uD833\uDD01",
-  "\uD833\uDD02", "\uD833\uDD03", "\uD833\uDD04", "\u259D", "\uD833\uDD05", "\uD833\uDD06",
-  "\uD833\uDD07", "\uD833\uDD08", "\u2580", "\uD833\uDD09", "\uD833\uDD0A", "\uD833\uDD0B",
-  "\uD833\uDD0C", "\uD83E\uDFE6", "\uD833\uDD0D", "\uD833\uDD0E", "\uD833\uDD0F", "\uD833\uDD10",
-  "\uD833\uDD11", "\uD833\uDD12", "\uD833\uDD13", "\uD833\uDD14", "\uD833\uDD15", "\uD833\uDD16",
-  "\uD833\uDD17", "\uD833\uDD18", "\uD833\uDD19", "\uD833\uDD1A", "\uD833\uDD1B", "\uD833\uDD1C",
-  "\uD833\uDD1D", "\uD833\uDD1E", "\uD833\uDD1F", "\uD83E\uDFE7", "\uD833\uDD20", "\uD833\uDD21",
-  "\uD833\uDD22", "\uD833\uDD23", "\uD833\uDD24", "\uD833\uDD25", "\uD833\uDD26", "\uD833\uDD27",
-  "\uD833\uDD28", "\uD833\uDD29", "\uD833\uDD2A", "\uD833\uDD2B", "\uD833\uDD2C", "\uD833\uDD2D",
-  "\uD833\uDD2E", "\uD833\uDD2F", "\uD833\uDD30", "\uD833\uDD31", "\uD833\uDD32", "\uD833\uDD33",
-  "\uD833\uDD34", "\uD833\uDD35", "\uD83E\uDF85", "\uD833\uDEA3", "\uD833\uDD36", "\uD833\uDD37",
-  "\uD833\uDD38", "\uD833\uDD39", "\uD833\uDD3A", "\uD833\uDD3B", "\uD833\uDD3C", "\uD833\uDD3D",
-  "\uD833\uDD3E", "\uD833\uDD3F", "\uD833\uDD40", "\uD833\uDD41", "\uD833\uDD42", "\uD833\uDD43",
-  "\uD833\uDD44", "\u2596", "\uD833\uDD45", "\uD833\uDD46", "\uD833\uDD47", "\uD833\uDD48", "\u258C",
-  "\uD833\uDD49", "\uD833\uDD4A", "\uD833\uDD4B", "\uD833\uDD4C", "\u259E", "\uD833\uDD4D",
-  "\uD833\uDD4E", "\uD833\uDD4F", "\uD833\uDD50", "\u259B", "\uD833\uDD51", "\uD833\uDD52",
-  "\uD833\uDD53", "\uD833\uDD54", "\uD833\uDD55", "\uD833\uDD56", "\uD833\uDD57", "\uD833\uDD58",
-  "\uD833\uDD59", "\uD833\uDD5A", "\uD833\uDD5B", "\uD833\uDD5C", "\uD833\uDD5D", "\uD833\uDD5E",
-  "\uD833\uDD5F", "\uD833\uDD60", "\uD833\uDD61", "\uD833\uDD62", "\uD833\uDD63", "\uD833\uDD64",
-  "\uD833\uDD65", "\uD833\uDD66", "\uD833\uDD67", "\uD833\uDD68", "\uD833\uDD69", "\uD833\uDD6A",
-  "\uD833\uDD6B", "\uD833\uDD6C", "\uD833\uDD6D", "\uD833\uDD6E", "\uD833\uDD6F", "\uD833\uDD70",
-  "\uD833\uDEA0", "\uD833\uDD71", "\uD833\uDD72", "\uD833\uDD73", "\uD833\uDD74", "\uD833\uDD75",
-  "\uD833\uDD76", "\uD833\uDD77", "\uD833\uDD78", "\uD833\uDD79", "\uD833\uDD7A", "\uD833\uDD7B",
-  "\uD833\uDD7C", "\uD833\uDD7D", "\uD833\uDD7E", "\uD833\uDD7F", "\uD833\uDD80", "\uD833\uDD81",
-  "\uD833\uDD82", "\uD833\uDD83", "\uD833\uDD84", "\uD833\uDD85", "\uD833\uDD86", "\uD833\uDD87",
-  "\uD833\uDD88", "\uD833\uDD89", "\uD833\uDD8A", "\uD833\uDD8B", "\uD833\uDD8C", "\uD833\uDD8D",
-  "\uD833\uDD8E", "\uD833\uDD8F", "\u2597", "\uD833\uDD90", "\uD833\uDD91", "\uD833\uDD92",
-  "\uD833\uDD93", "\u259A", "\uD833\uDD94", "\uD833\uDD95", "\uD833\uDD96", "\uD833\uDD97", "\u2590",
-  "\uD833\uDD98", "\uD833\uDD99", "\uD833\uDD9A", "\uD833\uDD9B", "\u259C", "\uD833\uDD9C",
-  "\uD833\uDD9D", "\uD833\uDD9E", "\uD833\uDD9F", "\uD833\uDDA0", "\uD833\uDDA1", "\uD833\uDDA2",
-  "\uD833\uDDA3", "\uD833\uDDA4", "\uD833\uDDA5", "\uD833\uDDA6", "\uD833\uDDA7", "\uD833\uDDA8",
-  "\uD833\uDDA9", "\uD833\uDDAA", "\uD833\uDDAB", "\u2582", "\uD833\uDDAC", "\uD833\uDDAD",
-  "\uD833\uDDAE", "\uD833\uDDAF", "\uD833\uDDB0", "\uD833\uDDB1", "\uD833\uDDB2", "\uD833\uDDB3",
-  "\uD833\uDDB4", "\uD833\uDDB5", "\uD833\uDDB6", "\uD833\uDDB7", "\uD833\uDDB8", "\uD833\uDDB9",
-  "\uD833\uDDBA", "\uD833\uDDBB", "\uD833\uDDBC", "\uD833\uDDBD", "\uD833\uDDBE", "\uD833\uDDBF",
-  "\uD833\uDDC0", "\uD833\uDDC1", "\uD833\uDDC2", "\uD833\uDDC3", "\uD833\uDDC4", "\uD833\uDDC5",
-  "\uD833\uDDC6", "\uD833\uDDC7", "\uD833\uDDC8", "\uD833\uDDC9", "\uD833\uDDCA", "\uD833\uDDCB",
-  "\uD833\uDDCC", "\uD833\uDDCD", "\uD833\uDDCE", "\uD833\uDDCF", "\uD833\uDDD0", "\uD833\uDDD1",
-  "\uD833\uDDD2", "\uD833\uDDD3", "\uD833\uDDD4", "\uD833\uDDD5", "\uD833\uDDD6", "\uD833\uDDD7",
-  "\uD833\uDDD8", "\uD833\uDDD9", "\uD833\uDDDA", "\u2584", "\uD833\uDDDB", "\uD833\uDDDC",
-  "\uD833\uDDDD", "\uD833\uDDDE", "\u2599", "\uD833\uDDDF", "\uD833\uDDE0", "\uD833\uDDE1",
-  "\uD833\uDDE2", "\u259F", "\uD833\uDDE3", "\u2586", "\uD833\uDDE4", "\uD833\uDDE5", "\u2588"
-];
+        const newTileX = charX < 0 ? this.tileX - 1 : charX > 15 ? this.tileX + 1 : this.tileX;
+        const newTileY = charY < 0 ? this.tileY - 1 : charY > 7 ? this.tileY + 1 : this.tileY;
 
-function applyDot(chr, x, y, erase) {
-  var idx = refTable.indexOf(chr);
-  if (idx == -1) return chr;
-  var pos = y * 2 + x;
-  pos = 1 << pos;
-  if (mode == 0) {
-    return refTable[idx | pos];
-  } else if (mode == 1) {
-    return refTable[idx & (255 - pos)];
-  }
-  return chr;
-}
-
-var brCursor = document.createElement("div");
-brCursor.id = "br-cursor"
-elm.main_view.appendChild(brCursor);
+        const nearbyCellInfo = getCharInfo(newTileX, newTileY, adjustedCharX, adjustedCharY);
+        const nearbyCellChar = nearbyCellInfo.char;
+        const nearbyCellCharBG = nearbyCellInfo.bgColor;
+        const nearbyCellColor = nearbyCellInfo.color;
+        const nearbyCellTargetColor = painter.ptr.altFill ? nearbyCellInfo.bgColor : nearbyCellInfo.color;
+        if (
+          !painter.cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, this.newColor, this.char)
+        ) {
 
 
+
+          if (this.char == nearbyCellChar && this.targetColor === nearbyCellTargetColor) {
+            if (!painter.cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, nearbyCellChar)) {
+
+              const newColorCell = new painter.ColorCell(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, this.newColor, nearbyCellChar);
+              painter.ptr.cells.push(newColorCell);
+
+            }
+          }
+
+
+        }
+      }
+    }
+  },
+  cellExistsInArray(tileX, tileY, charX, charY, targetColor, char) {
+    return painter.ptr.cells.some(cell => (
+      cell.tileX === tileX &&
+      cell.tileY === tileY &&
+      cell.charX === charX &&
+      cell.charY === charY &&
+      cell.targetColor === targetColor &&
+      cell.char === char
+    ));
+  },
+  beginFill(e) {
+
+    let stopped = false;
+    if (painter.ptr.fill) {
+      painter.ptr.fill = false;
+      stopped = true;
+      return;
+    }
+
+    if (stopped) {
+      return
+    }
+    painter.ptr.cells.length = 0;
+    painter.ptr.altFill = e.altKey || e.ctrlKey;
+    const [X, Y, x, y] = currentPosition;
+    const colorCellInfo = getCharInfo(X, Y, x, y);
+    const targetColor = painter.ptr.altFill ? colorCellInfo.bgColor : colorCellInfo.color;
+    const char = colorCellInfo.char;
+    const fillColor = (e.button == 0) ? painter.ptr.color : painter.ptr.bg;
+
+
+    const newColorCell = new painter.ColorCell(X, Y, x, y, targetColor, resolveColorValue(fillColor), char);
+
+    if (!painter.cellExistsInArray(X, Y, x, y, resolveColorValue(fillColor), char)) {
+      painter.ptr.cells.push(newColorCell);
+    }
+    painter.ptr.fill = true;
+    painter.processCell(0);
+  },
+  processCell(index) {
+    if (!painter.ptr.fill) {
+      return
+    }
+    if (index < painter.ptr.cells.length) {
+      const cell = painter.ptr.cells[index];
+      cell.onCreate();
+      setTimeout(() => {
+        if (!painter.ptr.fill) {
+          return
+        }
+        painter.processCell(index + 1);
+      }, painter.ptr.delay);
+    } else {
+      painter.ptr.fill = false;
+    }
+  },
+  getRandomPointInCircle(centerX, centerY, radius) {
+    const angle = Math.random() * 2 * Math.PI;
+    const randomRadius = Math.random() * radius;
+    const x = centerX + randomRadius * Math.cos(angle);
+    const y = centerY + randomRadius * Math.sin(angle);
+    return [x, y];
+  },
+  spray() {
+    if (painter.ptr.mode !== "spray" || !painter.ptr.mouse.downLeft && !painter.ptr.mouse.downRight) {
+      return
+    }
+    const [mouseX, mouseY] = currentMousePosition;
+    const maxRadius = painter.ptr.alt ? cellH : painter.ptr.shift ? cellH * 2 : cellW;
+    const [pageX, pageY] = painter.getRandomPointInCircle(mouseX, mouseY, maxRadius);
+    const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(pageX, pageY);
+
+    const e = {
+      tileX: tileX,
+      tileY: tileY,
+      charX: charX,
+      charY: charY,
+      pageX: pageX,
+      pageY: pageY,
+    }
+    painter.doPoint(e, "spray", maxRadius)
+  },
+  mouseToPoint(position = currentMousePosition) {
+    const [mouseX, mouseY] = position;
+    const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(mouseX, mouseY);
+    const e = {
+      tileX: tileX,
+      tileY: tileY,
+      charX: charX,
+      charY: charY,
+      pageX: mouseX,
+      pageY: mouseY,
+    }
+    return e;
+  },
+  createRoundedRectangleCoordinates(startX, startY, endX, endY, borderRadiusSize, perfectSquare = false, evenEdges = true) {
+    // Calculate the width and height of the rectangle
+    let width = evenEdges ? Math.min(Math.abs(endX - startX), Math.abs(endY - startY)) : Math.abs(endX - startX);
+    let height = evenEdges ? width : Math.abs(endY - startY);
+
+    if (perfectSquare) {
+      // If perfectSquare is true, set the width and height to the same value
+      const size = Math.max(width, height);
+      endX = startX + (endX > startX ? size : -size);
+      endY = startY + (endY > startY ? size : -size);
+      // Recalculate the width and height of the rectangle
+      width = Math.abs(endX - startX);
+      height = Math.abs(endY - startY);
+    }
+
+    // Rest of the code remains the same
+    const borderRadiusX = (evenEdges ? width : width) * borderRadiusSize;
+    const borderRadiusY = (evenEdges ? height : height) * borderRadiusSize;
+    const minDistance = ~~(cellH / 4 - 1); // Minimum distance between points in pixels
+    const topLeft = [Math.min(startX, endX), Math.min(startY, endY)];
+    const bottomRight = [Math.max(startX, endX), Math.max(startY, endY)];
+    const numPoints = 360; // You can adjust the number of points for smoother or coarser rounded corners
+    const cornerPixels = [];
+    let finish = false;
+
+    function createRoundedCorner(centerX, centerY, radiusX, radiusY, corner) {
+      let lastX = null;
+      let lastY = null;
+
+      const cornerPi = Math.PI / 2;
+      for (let i = numPoints; i >= 0; i--) { // Reverse the loop
+        let angle;
+        if (corner === 'BR') {
+          angle = (i / numPoints) * cornerPi; // Bottom-right corner
+        } else if (corner === 'BL') {
+          angle = ((i / numPoints) * cornerPi) + cornerPi; // Bottom-left corner
+        } else if (corner === 'TL') {
+          angle = ((i / numPoints) * cornerPi) + (cornerPi * 2); // Top-left corner
+        } else if (corner === 'TR') {
+          angle = ((i / numPoints) * cornerPi) + (cornerPi * 3); // Top-right corner
+        }
+
+        const x = centerX + radiusX * Math.cos(angle);
+        const y = centerY + radiusY * Math.sin(angle);
+
+        if (lastX !== null && lastY !== null) {
+          const distance = Math.hypot(x - lastX, y - lastY);
+          if (distance >= minDistance) {
+            cornerPixels.push([Math.round(x), Math.round(y)]);
+            lastX = x;
+            lastY = y;
+          }
+        } else {
+          cornerPixels.push([Math.round(x), Math.round(y)]);
+          lastX = x;
+          lastY = y;
+          if (finish) {
+            return;
+          }
+        }
+      }
+    }
+
+
+    createRoundedCorner(topLeft[0] + borderRadiusX, bottomRight[1] - borderRadiusY, borderRadiusX, borderRadiusY, 'BL');
+    createRoundedCorner(bottomRight[0] - borderRadiusX, bottomRight[1] - borderRadiusY, borderRadiusX, borderRadiusY, 'BR');
+    createRoundedCorner(bottomRight[0] - borderRadiusX, topLeft[1] + borderRadiusY, borderRadiusX, borderRadiusY, 'TR');
+    createRoundedCorner(topLeft[0] + borderRadiusX, topLeft[1] + borderRadiusY, borderRadiusX, borderRadiusY, 'TL');
+    finish = true;
+    createRoundedCorner(topLeft[0] + borderRadiusX, bottomRight[1] - borderRadiusY, borderRadiusX, borderRadiusY, 'BL');
+
+    return cornerPixels;
+  },
+  doRounded(e, radius = painter.ptr.corner, evenCorners = e.shiftKey) {
+    if (!painter.ptr.line.start && e.type == "mousedown") {
+      painter.ptr.line.start = structuredClone(currentMousePosition);
+    } else if (!painter.ptr.line.end && painter.ptr.line.start && e.type == "mouseup") {
+      painter.ptr.line.end = structuredClone(currentMousePosition);
+      const [startX, startY] = painter.ptr.line.start;
+      const [endX, endY] = painter.ptr.line.end;
+      const roundedCoordinates = painter.createRoundedRectangleCoordinates(startX, startY, endX, endY, radius, e.altKey, evenCorners);
+      const cornerPixels = roundedCoordinates;
+      painter.brLast = null;
+      cornerPixels.forEach(coord => {
+        painter.doPoint(painter.mouseToPoint(coord), painter.ptr.mode, e.button == 2);
+      });
+
+      painter.ptr.line.start = null;
+      painter.ptr.line.end = null;
+    }
+  },
+  doQcurve(e) {
+    const endCurve = e.altKey;
+    const pos = structuredClone(currentMousePosition);
+    const points = painter.ptr.curveControlPoints;
+    const power = ~~(Math.min(6, points.length) * 0.5);
+
+    if (e.type == "mousedown" && !endCurve && !painter.ptr.line.start) {
+      painter.ptr.curveControlPoints.push(pos);
+      painter.ptr.line.start = pos;
+    } else if (e.type == "mousedown" && !endCurve && painter.ptr.line.start && !painter.ptr.line.end) {
+      for (i = 0; i < painter.ptr.controlPointPower; i++) {
+        painter.ptr.curveControlPoints.push(pos);
+      }
+
+
+    } else if (endCurve && e.type == "mouseup" && points.length > 0 && !painter.ptr.line.end) {
+      painter.ptr.curveControlPoints.push(pos)
+      painter.ptr.line.end = pos;
+
+      const quadraticCurve = painter.createQuadraticCurve(painter.ptr.curveControlPoints);
+      painter.brLast = null;
+      quadraticCurve.forEach(coord => {
+        painter.doPoint(painter.mouseToPoint(coord), painter.ptr.mode, e.button == 2);
+      });
+      painter.ptr.line.start = null;
+      painter.ptr.line.end = null;
+      painter.ptr.curveControlPoints.length = 0;
+    }
+  },
+  doLine(e) {
+    if (!painter.ptr.line.start && e.type == "mousedown") {
+      painter.ptr.line.start = painter.mouseToPoint();
+      painter.doPoint(painter.ptr.line.start, painter.ptr.mode, e.button == 2)
+    } else if (!painter.ptr.line.end && painter.ptr.line.start && e.type == "mouseup") {
+      painter.ptr.line.end = painter.mouseToPoint();
+      painter.doPoint(painter.ptr.line.end, painter.ptr.mode, e.button == 2)
+    }
+  },
+  createQuadraticCurve(inputCoords) {
+    const resolution = 0.01;
+    const curveCoords = [];
+
+    function calculateQuadraticPoint(points, t) {
+      if (points.length === 1) {
+        return points[0];
+      }
+      const nextPoints = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        const x = (1 - t) * points[i][0] + t * points[i + 1][0];
+        const y = (1 - t) * points[i][1] + t * points[i + 1][1];
+
+        nextPoints.push([x, y]);
+      }
+      return calculateQuadraticPoint(nextPoints, t);
+    }
+    for (let t = 0; t <= 1; t += resolution) {
+      const curvePoint = calculateQuadraticPoint([...inputCoords], t);
+      curveCoords.push([Math.round(curvePoint[0]), Math.round(curvePoint[1])]);
+    }
+    return curveCoords;
+  },
+  doRender() {
+
+    if (!painter.isProcessing) {
+      painter.processQueue();
+    }
+  },
+};
+
+painter.ptr.elements.container.id = 'o-ptr-container';
+painter.ptr.elements.container.innerHTML = painter.ptr.html;
+elm.main_view.appendChild(painter.ptr.elements.container);
+painter.ptr.elements.style.textContent = painter.ptr.css;
+document.head.appendChild(painter.ptr.elements.style);
+painter.brCursor.id = "br-cursor"
+elm.main_view.appendChild(painter.brCursor);
 w.on("tilesrendered", function() {
   const offset = zoom >= 2 ? -1 : 0
-  brCursor.style.width = Math.ceil(cellW / 2) + offset + "px";
-  brCursor.style.height = Math.ceil(cellH / 4) + offset + "px";
+  painter.brCursor.style.width = Math.ceil(cellW / 2) + offset + "px";
+  painter.brCursor.style.height = Math.ceil(cellH / 4) + offset + "px";
 });
+w.on("mousemove", function(e) {
+  if ((painter.ptr.mouse.downLeft || painter.ptr.mouse.downRight) && painter.ptr.mode !== "text" && "spray pencil erase".includes(painter.ptr.mode)) {
+    painter.doPoint(e);
+  }
+});
+var painterGridEnabled = false;
+menuOptions.octogrid = menu.addCheckboxOption("Octo-grid", function() {
+  painterGridEnabled = true;
+  w.redraw();
+  setRedrawPatterned("square");
+}, function() {
+  painterGridEnabled = false;
+  w.redraw();
+  setRedrawPatterned("square");
+});
+menu.hideEntry(menuOptions.octogrid);
+painter.moveElement(menuOptions.octogrid, menuOptions.subgrid);
 
-var brDraw = false;
-var brLast = null;
+menu.entries[menuOptions.subgrid - 1].element.addEventListener("click", function(e) {
+  if (e.target.checked) {
+    menu.showEntry(menuOptions.octogrid);
+  } else {
+    menu.hideEntry(menuOptions.octogrid);
+  }
+})
+document.addEventListener("mouseup", painter.preventChatOverlay)
+document.addEventListener("click", painter.preventChatOverlay)
+document.querySelector("#o-ptr-bottom-container").addEventListener('mousedown', painter.handleColorClick);
+elm.main_view.addEventListener("contextmenu", function(e) {
+  e.preventDefault();
+})
 
-function doPoint(e, forcemode, param) {
+owot.addEventListener("mousedown", function(e) {
+  painter.setPtrMouse(e, true);
+  painter.ptr.mouse.draw = true;
+  painter.ptr.alt = e.altKey;
+  painter.ptr.ctrl = e.ctrlKey;
+  painter.ptr.shift = e.shiftKey;
 
-  if (!e || "line shape square circle".includes(ptr.mode) && forcemode !== ptr.mode) {
-    return
+  if ("line shape".includes(painter.ptr.mode)) {
+    painter.doLine(e);
+  } else if ("square".includes(painter.ptr.mode)) {
+    painter.doRounded(e, 0)
+  } else if ("circle".includes(painter.ptr.mode)) {
+    painter.doRounded(e, 0.5, false)
+  } else if ("rounded".includes(painter.ptr.mode)) {
+    painter.doRounded(e)
+  } else if ("curve".includes(painter.ptr.mode)) {
+    painter.doQcurve(e);
+  } else {
+    painter.doPoint(e, "single");
+  }
+})
+
+owot.addEventListener("mouseup", function(e) {
+  painter.ptr.alt = e.altKey;
+  painter.ptr.ctrl = e.ctrlKey;
+  painter.ptr.shift = e.shiftKey;
+  painter.setPtrMouse(e);
+  painter.ptr.mouse.draw = false;
+  if (painter.ptr.mode == "dropper") {
+    painter.startEyeDropper(e);
+  }
+  if (painter.ptr.mode == "bucket") {
+    painter.beginFill(e);
+  }
+  if ("line shape".includes(painter.ptr.mode)) {
+    painter.doLine(e);
+  } else if ("square".includes(painter.ptr.mode)) {
+    painter.doRounded(e, 0)
+  } else if ("circle".includes(painter.ptr.mode)) {
+    painter.doRounded(e, 0.5, false)
+  } else if ("rounded".includes(painter.ptr.mode)) {
+    painter.doRounded(e)
+  } else if ("curve".includes(painter.ptr.mode)) {
+    painter.doQcurve(e);
+  }
+})
+
+owot.addEventListener("mousemove", function(e) {
+  painter.ptr.shift = e.shiftKey;
+  painter.ptr.ctrl = e.ctrlKey;
+  painter.ptr.alt = e.altKey;
+})
+
+owot.addEventListener("click", function(e) {
+  if (painter.ptr.mode == "zoom") {
+    painter.scrollWorld(painter.lerp([0, 0], painter.subtract([e.x, e.y], [(owotWidth / 2), (owotHeight / 2)]), 0.5));
+    if (e.ctrlKey || e.altKey) {
+      changeZoom(userZoom * 90);
+    } else {
+      changeZoom(userZoom * 110);
+    }
+  }
+  if (painter.ptr.mode == "select") {
+    w.regionSelect.startSelection();
   }
 
-  var tileX = e.tileX;
-  var tileY = e.tileY;
-  var charX = e.charX;
-  var charY = e.charY;
-
-  var halfX = Math.floor(owotWidth / 2);
-  var halfY = Math.floor(owotHeight / 2);
-  var pageX = e.pageX - halfX;
-  var pageY = e.pageY - halfY;
-
-  // get absolute x/y mouse position
-  var absX = pageX - positionX;
-  var absY = pageY - positionY;
-
-  // screen size of braille dot
-  var segW = cellW / 2;
-  var segH = cellH / 4;
-
-  // absolute dot position
-  var absBrX = Math.floor(absX / segW);
-  var absBrY = Math.floor(absY / segH);
-  var absBrX_L = Math.floor(absX / cellW);
-  var absBrY_L = Math.floor(absY / cellH);
-  const altType = ptr.ctrl || ptr.mode == "brush"
-  const [mouseX, mouseY] = currentMousePosition;
-  const radius = altType ? param + cellH : param + (cellW / 2);
-  brCursor.style.borderRadius = ptr.mode == "spray" ? "100%" : "0%"
-  brCursor.style.width = ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellW + "px" : Math.ceil(cellW / 2) + "px";
-  brCursor.style.height = ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellH + "px" : Math.ceil(cellH / 4) + "px";
-  brCursor.style.left = ptr.mode == "spray" ? mouseX - radius + "px" : altType ? (cellW * absBrX_L + halfX + positionX) + "px" : (segW * absBrX + halfX + positionX) + "px";
-  brCursor.style.top = ptr.mode == "spray" ? mouseY - radius + "px" : altType ? (cellH * absBrY_L + halfY + positionY) + "px" : (segH * absBrY + halfY + positionY) + "px";
-  brCursor.style.opacity = "pencil erase brush spray line shape square circle".includes(ptr.mode) ? 1 : 0;
-
-
-  if (!ptr.mouse.draw && !("line shape square circle".includes(forcemode)) || !"pencil erase brush spray line shape square circle".includes(ptr.mode) || ptr.mode == "spray" && forcemode !== "spray") {
-    brLast = null;
-
+})
+w.on("keydown", function(e) {
+  if (painter.ptr.mode == "text" || e.ctrlKey || e.altKey || e.shiftKey) {
     return;
   }
 
-  if (brLast || ptr.mode == "spray" && forcemode == "spray" || ptr.mode == "pencil" && forcemode == "single") {
-    var line = forcemode == "spray" || forcemode == "single" ?
-      lineGen(absBrX, absBrY, absBrX, absBrY) :
-      lineGen(brLast[0], brLast[1], absBrX, absBrY);
+  const mode = painter.ptr.mode;
+  const key = e.key;
+  switch (key) {
+    case 'p':
+      painter.setMode("pencil")
+      break;
+    case 'b':
+      painter.setMode("brush");
+      break;
+    case 'e':
+      painter.setMode("erase");
+      break;
+    case 'd':
+      painter.setMode("dropper");
+      break;
+    case 'z':
+      painter.setMode("zoom");
+      break;
+    case 't':
+      painter.setMode("text");
+      break;
+    case 's':
+      painter.setMode("select");
+      break;
+    case 'f':
+      painter.setMode("bucket");
+      break;
+    case 'g':
+      painter.setMode("spray");
+      break;
+    case 'l':
+      painter.setMode("line");
+      break;
+    case 'k':
+      painter.setMode("shape");
+      break;
+    case 'r':
+      painter.setMode("square");
+      break;
+    case 'o':
+      painter.setMode("circle");
+      break;
+    case 'w':
+      painter.setMode("rounded");
+      break;
+    case 'q':
+      painter.setMode("curve");
+      break;
 
-    // interpolate
-    for (var i = 0; i < line.length; i++) {
-      var pixel = line[i];
-      // absolute dot position
-      var abrX = pixel[0];
-      var abrY = pixel[1];
+    default:
+      painter.setMode("text");
+      painter.setMode(mode);
+  }
+  if (typeof parseInt(e.key) == "number" && !isNaN(parseInt(e.key))) {
 
-      // absolute char position
-      var cx = Math.floor(abrX / 2);
-      var cy = Math.floor(abrY / 4);
-
-      // in-char dot position
-      var brX = abrX - Math.floor(abrX / 2) * 2;
-      var brY = abrY - Math.floor(abrY / 4) * 4;
-
-      var chr = getCharInfoXY(cx, cy);
-      const erasing = ptr.mode == "erase";
-      const brush = ptr.mode == "brush";
-      const keysToInclude = ["public", "member", "owner"];
-      const protectionArray = keysToInclude.map(key => styles[key]);
-      const cellColor = resolveColorValue(protectionArray[getCharInfoXY().protection]);
-      const drawColor = erasing ?
-        //if erasing
-        cellColor :
-        //if not erasing
-        brush && !ptr.ctrl ?
-        //if brus + ctrl
-        chr.color :
-        //else
-        ptr.mouse.downRight || "line shape square circle".includes(ptr.mode) && param ?
-        resolveColorValue(ptr.bg) :
-        resolveColorValue(ptr.color);
-
-      mode = erasing ? 1 : Number(drawColor == cellColor);
-
-      const dotChr = (() => {
-        if (brush) {
-          return chr.char;
-        }
-        if (erasing) {
-          return ptr.ctrl ? " " : applyDot(chr.char, brX, brY);
-        }
-        return ptr.ctrl ? (ptr.mouse.downRight ? (mode === 1 ? " " : "█") : "█") : applyDot(chr.char, brX, brY);
-      })();
-
-      const charColor = mode ? brush ? chr.color : chr.color : drawColor;
-      const charBgColor =
-        erasing ?
-        cellColor :
-        brush && !ptr.ctrl ?
-        ptr.mouse.downRight ?
-        resolveColorValue(ptr.bg) :
-        resolveColorValue(ptr.color) :
-        chr.bgColor;
-      writeCharToXY(dotChr, charColor, cx, cy, charBgColor);
+    if (painter.ptr.mode == "rounded") {
+      painter.ptr.corner = Math.min(0.5, parseInt(e.key) * 0.06);
+    }
+    if (painter.ptr.mode == "curve") {
+      painter.ptr.controlPointPower = Math.max(1, parseInt(e.key));
     }
   }
-  brLast = [absBrX, absBrY];
-  if (ptr.line.start && ptr.line.end) {
-
-    if ("line".includes(ptr.mode)) {
-      ptr.line.start = ptr.line.end = null;
-      brLast = null;
-    } else if (ptr.mode == "shape") {
-      ptr.line.start = ptr.line.end = null;
-    }
-  }
-}
-w.on("mousemove", doPoint);
-
-var painterGridEnabled = false;
+})
+w.on("frame", painter.spray);
+setInterval(painter.doRender, 10);
+document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = int_to_hexcode(YourWorld.Color);
+painter.ptr.color = int_to_hexcode(YourWorld.Color);
+document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = int_to_hexcode(YourWorld.BgColor);
+painter.ptr.bg = int_to_hexcode(YourWorld.BgColor);
+painter.updateColors();
 drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
   if (subgridEnabled && zoom >= 0.3) {
     if (painterGridEnabled && zoom < 2 || !painterGridEnabled) {
@@ -1071,471 +1597,3 @@ drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), tileWidth, 1);
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), 1, tileHeight);
 }
-menuOptions.octogrid = menu.addCheckboxOption("Octo-grid", function() {
-  painterGridEnabled = true;
-  w.redraw();
-  setRedrawPatterned("square");
-}, function() {
-  painterGridEnabled = false;
-  w.redraw();
-  setRedrawPatterned("square");
-});
-menu.hideEntry(menuOptions.octogrid);
-
-
-function moveElement(menuObject, pos) {
-  const checkboxEl = menu.entries[menuObject - 1].element;
-  const navUl = elm.nav_elm.children[0];
-  const referenceNode = navUl.children[pos];
-  navUl.insertBefore(checkboxEl, referenceNode);
-  return checkboxEl;
-}
-
-moveElement(menuOptions.octogrid, menuOptions.subgrid);
-menu.entries[menuOptions.subgrid - 1].element.addEventListener("click", function(e) {
-  if (e.target.checked) {
-    menu.showEntry(menuOptions.octogrid);
-  } else {
-    menu.hideEntry(menuOptions.octogrid);
-  }
-})
-document.addEventListener("mouseup", preventChatOverlay)
-document.addEventListener("click", preventChatOverlay)
-document.querySelector("#o-ptr-bottom-container").addEventListener('mousedown', handleColorClick);
-elm.main_view.addEventListener("contextmenu", function(e) {
-  e.preventDefault();
-})
-
-owot.addEventListener("mousedown", function(e) {
-  setPtrMouse(e, true);
-  ptr.mouse.draw = true;
-  ptr.alt = e.altKey;
-  ptr.ctrl = e.ctrlKey;
-  ptr.shift = e.shiftKey;
-
-  if ("line shape".includes(ptr.mode)) {
-    doLine(e);
-  } else if ("square".includes(ptr.mode)) {
-    doSquare(e)
-  } else if ("circle".includes(ptr.mode)) {
-    doOval(e)
-  } else {
-    doPoint(e, "single");
-  }
-})
-
-owot.addEventListener("mouseup", function(e) {
-  ptr.alt = e.altKey;
-  ptr.ctrl = e.ctrlKey;
-  ptr.shift = e.shiftKey;
-  setPtrMouse(e);
-  ptr.mouse.draw = false;
-  if (ptr.mode == "dropper") {
-    startEyeDropper(e);
-  }
-  if (ptr.mode == "bucket") {
-    beginFill(e);
-  }
-  if ("line shape".includes(ptr.mode)) {
-    doLine(e);
-  } else if ("square".includes(ptr.mode)) {
-    doSquare(e)
-  } else if ("circle".includes(ptr.mode)) {
-    doOval(e)
-  }
-})
-
-owot.addEventListener("mousemove", function(e) {
-  ptr.shift = e.shiftKey;
-  ptr.ctrl = e.ctrlKey;
-  ptr.alt = e.altKey;
-})
-
-owot.addEventListener("click", function(e) {
-  if (ptr.mode == "zoom") {
-    scrollWorld(lerp([0, 0], subtract([e.x, e.y], [(owotWidth / 2), (owotHeight / 2)]), 0.5));
-    if (e.ctrlKey || e.altKey) {
-      changeZoom(userZoom * 90);
-    } else {
-      changeZoom(userZoom * 110);
-    }
-  }
-  if (ptr.mode == "select") {
-    w.regionSelect.startSelection();
-  }
-
-})
-
-function setMode(mode) {
-  document.querySelector(`.o-ptr-tool-btn[data-value="${mode}"]`).click();
-}
-
-w.on("keydown", function(e) {
-  if (ptr.mode == "text" || e.ctrlKey || e.altKey || e.shiftKey) {
-    return;
-  }
-
-
-  const key = e.key;
-  switch (key) {
-    case 'p':
-      setMode("pencil")
-      break;
-    case 'b':
-      setMode("brush");
-      break;
-    case 'e':
-      setMode("erase");
-      break;
-    case 'd':
-      setMode("dropper");
-      break;
-    case 'z':
-      setMode("zoom");
-      break;
-    case 't':
-      setMode("text");
-      break;
-    case 's':
-      setMode("select");
-      break;
-    case 'f':
-      setMode("bucket");
-      break;
-    case 'g':
-      setMode("spray");
-      break;
-    case 'l':
-      setMode("line");
-      break;
-    case 'k':
-      setMode("shape");
-      break;
-    case 'r':
-      setMode("square");
-      break;
-    case 'o':
-      setMode("circle");
-      break;
-    case 'Escape':
-      ptr.fill = false;
-      brLast = null;
-      break;
-
-    default:
-      // code block
-  }
-
-})
-//--------------
-
-class ColorCell {
-  constructor(tileX, tileY, charX, charY, targetColor, newColor, char) {
-    this.tileX = tileX;
-    this.tileY = tileY;
-    this.charX = charX;
-    this.charY = charY;
-    this.targetColor = targetColor;
-    this.newColor = newColor;
-    this.char = char;
-  }
-
-  onCreate() {
-    const colorCellInfo = getCharInfo(this.tileX, this.tileY, this.charX, this.charY);
-    const editArray = ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
-      [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
-
-    tellEdit.push(editArray); // track local changes
-    writeBuffer.push(editArray); // send edits to server
-    nextObjId++;
-    markCharacterAsUndoable(this.tileX, this.tileY, this.charX, this.charY);
-
-    const nearbyCells = [{
-        charX: this.charX - 1,
-        charY: this.charY
-      },
-      {
-        charX: this.charX + 1,
-        charY: this.charY
-      },
-      {
-        charX: this.charX,
-        charY: this.charY - 1
-      },
-      {
-        charX: this.charX,
-        charY: this.charY + 1
-      },
-    ];
-
-    for (const {
-        charX,
-        charY
-      } of nearbyCells) {
-      const adjustedCharX = charX < 0 ? 15 : charX > 15 ? 0 : charX;
-      const adjustedCharY = charY < 0 ? 7 : charY > 7 ? 0 : charY;
-
-      const newTileX = charX < 0 ? this.tileX - 1 : charX > 15 ? this.tileX + 1 : this.tileX;
-      const newTileY = charY < 0 ? this.tileY - 1 : charY > 7 ? this.tileY + 1 : this.tileY;
-
-      const nearbyCellInfo = getCharInfo(newTileX, newTileY, adjustedCharX, adjustedCharY);
-      const nearbyCellChar = nearbyCellInfo.char;
-      const nearbyCellCharBG = nearbyCellInfo.bgColor;
-      const nearbyCellColor = nearbyCellInfo.color;
-      const nearbyCellTargetColor = ptr.altFill ? nearbyCellInfo.bgColor : nearbyCellInfo.color;
-      if (
-        !cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, this.newColor, this.char)
-      ) {
-
-
-
-        if (this.char == nearbyCellChar && this.targetColor === nearbyCellTargetColor) {
-          if (!cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, nearbyCellChar)) {
-
-            const newColorCell = new ColorCell(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, this.newColor, nearbyCellChar);
-            ptr.cells.push(newColorCell);
-
-          }
-        }
-
-
-      }
-    }
-  }
-}
-
-// Array to store all the cell objects
-
-
-// Function to check if a cell with the same coordinates and color exists in the array
-function cellExistsInArray(tileX, tileY, charX, charY, targetColor, char) {
-  return ptr.cells.some(cell => (
-    cell.tileX === tileX &&
-    cell.tileY === tileY &&
-    cell.charX === charX &&
-    cell.charY === charY &&
-    cell.targetColor === targetColor &&
-    cell.char === char
-  ));
-}
-
-function beginFill(e) {
-
-  let stopped = false;
-  if (ptr.fill) {
-    ptr.fill = false;
-    stopped = true;
-    return;
-  }
-
-  if (stopped) {
-    return
-  }
-  ptr.cells.length = 0;
-  ptr.altFill = e.altKey || e.ctrlKey;
-  const [X, Y, x, y] = currentPosition;
-  const colorCellInfo = getCharInfo(X, Y, x, y);
-  const targetColor = ptr.altFill ? colorCellInfo.bgColor : colorCellInfo.color;
-  const char = colorCellInfo.char;
-  const fillColor = (e.button == 0) ? ptr.color : ptr.bg;
-
-
-  const newColorCell = new ColorCell(X, Y, x, y, targetColor, resolveColorValue(fillColor), char);
-
-  if (!cellExistsInArray(X, Y, x, y, resolveColorValue(fillColor), char)) {
-    ptr.cells.push(newColorCell);
-  }
-  ptr.fill = true;
-  processCell(0);
-}
-
-function processCell(index) {
-  if (!ptr.fill) {
-    return
-  }
-  if (index < ptr.cells.length) {
-    const cell = ptr.cells[index];
-    cell.onCreate();
-    setTimeout(() => {
-      if (!ptr.fill) {
-        return
-      }
-      processCell(index + 1);
-    }, ptr.delay);
-  } else {
-    ptr.fill = false;
-  }
-}
-
-function getRandomPointInCircle(centerX, centerY, radius) {
-  const angle = Math.random() * 2 * Math.PI;
-  const randomRadius = Math.random() * radius;
-  const x = centerX + randomRadius * Math.cos(angle);
-  const y = centerY + randomRadius * Math.sin(angle);
-  return [x, y];
-}
-
-function spray() {
-  if (ptr.mode !== "spray") {
-    return
-  }
-  const [mouseX, mouseY] = currentMousePosition;
-  const maxRadius = ptr.alt ? cellH : ptr.ctrl ? cellH * 2 : cellW;
-  const [pageX, pageY] = getRandomPointInCircle(mouseX, mouseY, maxRadius);
-  const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(pageX, pageY);
-
-  const e = {
-    tileX: tileX,
-    tileY: tileY,
-    charX: charX,
-    charY: charY,
-    pageX: pageX,
-    pageY: pageY,
-  }
-  doPoint(e, "spray", maxRadius)
-}
-
-function mouseToPoint(position = currentMousePosition) {
-  const [mouseX, mouseY] = position;
-  const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(mouseX, mouseY);
-  const e = {
-    tileX: tileX,
-    tileY: tileY,
-    charX: charX,
-    charY: charY,
-    pageX: mouseX,
-    pageY: mouseY,
-  }
-  return e;
-}
-
-function createSquareCoordinates(startX, startY, endX, endY) {
-  // Calculate the width and height of the square
-  const width = Math.abs(endX - startX);
-  const height = Math.abs(endY - startY);
-
-  // Determine the direction of the square (up or down)
-  const directionX = endX > startX ? 1 : -1;
-  const directionY = endY > startY ? 1 : -1;
-
-  // Calculate coordinates for the four corners
-  const topLeft = [startX, startY];
-  const topRight = [startX + width * directionX, startY];
-  const bottomLeft = [startX, startY + height * directionY];
-  const bottomRight = [startX + width * directionX, startY + height * directionY];
-
-  return {
-    topLeft,
-    topRight,
-    bottomLeft,
-    bottomRight
-  };
-}
-
-
-function createOvalCoordinates(startX, startY, endX, endY, isPerfectCircle) {
-  // Calculate the minimum and maximum values for the bounding box
-  const minX = Math.min(startX, endX);
-  const maxX = Math.max(startX, endX);
-  const minY = Math.min(startY, endY);
-  const maxY = Math.max(startY, endY);
-
-  // Calculate the center of the bounding box
-  const centerX = minX + (maxX - minX) / 2;
-  const centerY = minY + (maxY - minY) / 2;
-
-  // Calculate the width and height of the bounding box
-  const width = maxX - minX;
-  const height = maxY - minY;
-
-  // Calculate the radius based on whether it's a perfect circle or not
-  const radiusX = isPerfectCircle ? Math.min(width, height) / 2 : width / 2;
-  const radiusY = isPerfectCircle ? radiusX : height / 2;
-
-  const numPoints = 360; // You can adjust the number of points for smoother or coarser ovals
-  const minDistance = ~~(cellH / 4 - 1);
-  const ovalCoordinates = [];
-
-  for (let i = 0; i < numPoints; i++) {
-    const angle = (i / numPoints) * 2 * Math.PI;
-    const x = centerX + radiusX * Math.cos(angle);
-    const y = centerY + radiusY * Math.sin(angle);
-
-    // Check if the point is at least 'minDistance' pixels away from the previous point
-    if (i === 0 || Math.hypot(x - ovalCoordinates[ovalCoordinates.length - 1][0], y - ovalCoordinates[ovalCoordinates.length - 1][1]) >= minDistance) {
-      ovalCoordinates.push([Math.round(x), Math.round(y)]);
-    }
-  }
-
-  return ovalCoordinates;
-}
-
-function doOval(e) {
-  if (!ptr.line.start) {
-    ptr.line.start = structuredClone(currentMousePosition);
-  } else if (!ptr.line.end) {
-    ptr.line.end = structuredClone(currentMousePosition);
-
-    const [startX, startY] = ptr.line.start;
-    const [endX, endY] = ptr.line.end;
-    const ovalCoordinates = createOvalCoordinates(startX, startY, endX, endY, e.altKey);
-    brLast = null;
-
-    ovalCoordinates.forEach(coord => {
-      doPoint(mouseToPoint(coord), ptr.mode, e.button == 2);
-    });
-
-    ptr.line.start = null;
-    ptr.line.end = null;
-  }
-}
-
-function doSquare(e) {
-  if (!ptr.line.start) {
-    ptr.line.start = structuredClone(currentMousePosition);
-  } else if (!ptr.line.end) {
-    ptr.line.end = structuredClone(currentMousePosition);
-
-    const [startX, startY] = ptr.line.start;
-    const [endX, endY] = ptr.line.end;
-    let {
-      topLeft,
-      topRight,
-      bottomLeft,
-      bottomRight
-    } = createSquareCoordinates(startX, startY, endX, endY);
-
-    topLeft = mouseToPoint(topLeft);
-    topRight = mouseToPoint(topRight);
-    bottomLeft = mouseToPoint(bottomLeft);
-    bottomRight = mouseToPoint(bottomRight);
-
-    brLast = null;
-    doPoint(topLeft, ptr.mode, e.button == 2);
-    doPoint(topRight, ptr.mode, e.button == 2);
-    doPoint(bottomRight, ptr.mode, e.button == 2);
-    doPoint(bottomLeft, ptr.mode, e.button == 2);
-    doPoint(topLeft, ptr.mode, e.button == 2);
-
-    ptr.line.start = null;
-    ptr.line.end = null;
-
-  }
-}
-
-function doLine(e) {
-  if (!ptr.line.start) {
-    ptr.line.start = mouseToPoint();
-    doPoint(ptr.line.start, ptr.mode, e.button == 2)
-  } else if (!ptr.line.end) {
-    ptr.line.end = mouseToPoint();
-    doPoint(ptr.line.end, ptr.mode, e.button == 2)
-  }
-}
-setInterval(spray, 10);
-document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = int_to_hexcode(YourWorld.Color);
-ptr.color = int_to_hexcode(YourWorld.Color);
-
-document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = int_to_hexcode(YourWorld.BgColor);
-ptr.bg = int_to_hexcode(YourWorld.BgColor);
-updateColors();
