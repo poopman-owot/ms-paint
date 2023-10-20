@@ -1,5 +1,7 @@
-
+//1154 modulated
 // next: star select
+//copy("[\x1b*]");
+
 Permissions.can_color_cell = function() {
   return true
 };
@@ -589,7 +591,7 @@ input[type="color"] {
   bottom: 3px;
   margin-left: 8px;
 }
-#br-cursor{
+.br-cursor{
 
 position : absolute;
 width : ${Math.ceil(cellW / 2)}px;
@@ -902,10 +904,11 @@ display:none !important
       setTimeout(() => {
         painter.isProcessing = false;
         painter.processQueue(); // Process the next call in the queue
-      }, !("spray erase".includes(painter.ptr.mode)) << 3); // Set the throttle interval to 10ms
+      }, !("spray erase brush".includes(painter.ptr.mode)) << 3); // Set the throttle interval to 10ms
     }
   },
   doPoint(e, forcemode, param) {
+
     if (!e || "line shape square circle rounded curve".includes(painter.ptr.mode) && forcemode !== painter.ptr.mode) {
       return
     }
@@ -947,7 +950,7 @@ display:none !important
     var absBrY = Math.floor(absY / segH);
     var absBrX_L = Math.floor(absX / cellW);
     var absBrY_L = Math.floor(absY / cellH);
-    const altType = painter.ptr.shift || painter.ptr.mode == "brush"
+    const altType = painter.ptr.ctrl || painter.ptr.mode == "brush"
     const [mouseX, mouseY] = currentMousePosition;
     const radius = altType ? param + cellH : param + (cellW / 2);
     painter.brCursor.style.borderRadius = painter.ptr.mode == "spray" ? "100%" : "0%"
@@ -955,7 +958,7 @@ display:none !important
     painter.brCursor.style.height = painter.ptr.mode == "spray" ? radius * 2 + "px" : altType ? cellH + "px" : Math.ceil(cellH / 4) + "px";
     painter.brCursor.style.left = painter.ptr.mode == "spray" ? mouseX - radius + "px" : altType ? (cellW * absBrX_L + halfX + positionX) + "px" : (segW * absBrX + halfX + positionX) + "px";
     painter.brCursor.style.top = painter.ptr.mode == "spray" ? mouseY - radius + "px" : altType ? (cellH * absBrY_L + halfY + positionY) + "px" : (segH * absBrY + halfY + positionY) + "px";
-    painter.brCursor.style.opacity = "pencil erase brush spray line shape square circle rounded curve".includes(painter.ptr.mode) ? 1 : 0;
+    painter.brCursor.style.opacity = "pencil erase brush spray ".includes(painter.ptr.mode) && (painter.ptr.mouse.downRight || painter.ptr.mouse.downLeft) ? 1 : 0;
 
 
     if (!painter.ptr.mouse.draw && !("line shape square circle rounded curve".includes(forcemode)) || !"pencil erase brush spray line shape square circle rounded curve".includes(painter.ptr.mode) || painter.ptr.mode == "spray" && forcemode !== "spray") {
@@ -1288,7 +1291,7 @@ display:none !important
       painter.ptr.line.end = null;
     }
   },
-  doQcurve(e) {
+  doQcurve(e, line) {
     const endCurve = e.altKey;
     const pos = structuredClone(currentMousePosition);
     const points = painter.ptr.curveControlPoints;
@@ -1303,7 +1306,7 @@ display:none !important
       }
 
 
-    } else if (endCurve && e.type == "mouseup" && points.length > 0 && !painter.ptr.line.end) {
+    } else if ((endCurve || line) && e.type == "mouseup" && points.length > 0 && !painter.ptr.line.end) {
       painter.ptr.curveControlPoints.push(pos)
       painter.ptr.line.end = pos;
 
@@ -1318,13 +1321,7 @@ display:none !important
     }
   },
   doLine(e) {
-    if (!painter.ptr.line.start && e.type == "mousedown") {
-      painter.ptr.line.start = painter.mouseToPoint();
-      painter.doPoint(painter.ptr.line.start, painter.ptr.mode, e.button == 2)
-    } else if (!painter.ptr.line.end && painter.ptr.line.start && e.type == "mouseup") {
-      painter.ptr.line.end = painter.mouseToPoint();
-      painter.doPoint(painter.ptr.line.end, painter.ptr.mode, e.button == 2)
-    }
+    painter.doQcurve(e, true)
   },
   createQuadraticCurve(inputCoords) {
     const resolution = 0.01;
@@ -1362,7 +1359,7 @@ painter.ptr.elements.container.innerHTML = painter.ptr.html;
 elm.main_view.appendChild(painter.ptr.elements.container);
 painter.ptr.elements.style.textContent = painter.ptr.css;
 document.head.appendChild(painter.ptr.elements.style);
-painter.brCursor.id = "br-cursor"
+painter.brCursor.classList.add("br-cursor")
 elm.main_view.appendChild(painter.brCursor);
 w.on("tilesrendered", function() {
   const offset = zoom >= 2 ? -1 : 0
@@ -1370,7 +1367,9 @@ w.on("tilesrendered", function() {
   painter.brCursor.style.height = Math.ceil(cellH / 4) + offset + "px";
 });
 w.on("mousemove", function(e) {
-  if ((painter.ptr.mouse.downLeft || painter.ptr.mouse.downRight) && painter.ptr.mode !== "text" && "spray pencil erase".includes(painter.ptr.mode)) {
+
+
+  if ((painter.ptr.mouse.downLeft || painter.ptr.mouse.downRight) && painter.ptr.mode !== "text" && "spray pencil erase brush".includes(painter.ptr.mode)) {
     painter.doPoint(e);
   }
 });
@@ -1424,6 +1423,7 @@ owot.addEventListener("mousedown", function(e) {
 })
 
 owot.addEventListener("mouseup", function(e) {
+  painter.brCursor.style.opacity = 0;
   painter.ptr.alt = e.altKey;
   painter.ptr.ctrl = e.ctrlKey;
   painter.ptr.shift = e.shiftKey;
@@ -1452,6 +1452,9 @@ owot.addEventListener("mousemove", function(e) {
   painter.ptr.shift = e.shiftKey;
   painter.ptr.ctrl = e.ctrlKey;
   painter.ptr.alt = e.altKey;
+
+
+
 })
 
 owot.addEventListener("click", function(e) {
@@ -1536,7 +1539,58 @@ w.on("keydown", function(e) {
     }
   }
 })
-w.on("frame", painter.spray);
+w.on("frame", painterTick);
+
+function painterTick(e) {
+  painter.spray(e)
+  previewRenders.forEach(preview_pixel => {
+    preview_pixel.destroy();
+  });
+
+
+  if ("rounded circle square".includes(painter.ptr.mode)) {
+
+    if (!painter.ptr.line.end && painter.ptr.line.start) {
+      const radius = "square".includes(painter.ptr.mode) ? 0 : "circle".includes(painter.ptr.mode) ? 0.5 : painter.ptr.corner;
+      const perfectCorners = "circle".includes(painter.ptr.mode) ? false : painter.ptr.shift;
+      const potentialEnd = structuredClone(currentMousePosition);
+      const [startX, startY] = painter.ptr.line.start;
+      const [endX, endY] = potentialEnd;
+      console.log(perfectCorners)
+      const roundedCoordinates = painter.createRoundedRectangleCoordinates(startX, startY, endX, endY, radius, painter.ptr.alt, perfectCorners);
+      const cornerPixels = roundedCoordinates;
+      cornerPixels.forEach(coord => {
+        const tempCell = new previewPixel(painter.mouseToPoint(coord), painter.ptr.mode, true)
+      });
+    }
+  }
+
+  if ("line curve shape".includes(painter.ptr.mode)) {
+    const endCurve = painter.ptr.alt;
+    const pos = structuredClone(currentMousePosition);
+    const points = painter.ptr.curveControlPoints;
+    const power = ~~(Math.min(6, points.length) * 0.5);
+
+    if (points.length > 0 && !painter.ptr.line.end) {
+      const previewPoints = structuredClone(painter.ptr.curveControlPoints);
+      previewPoints.push(pos);
+
+      const quadraticCurve = painter.createQuadraticCurve(previewPoints);
+      quadraticCurve.forEach(coord => {
+        const tempCell = new previewPixel(painter.mouseToPoint(coord), painter.ptr.mode, true)
+      });
+
+    }
+  }
+
+
+
+
+
+}
+
+
+
 setInterval(painter.doRender, 10);
 document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = int_to_hexcode(YourWorld.Color);
 painter.ptr.color = int_to_hexcode(YourWorld.Color);
@@ -1596,4 +1650,46 @@ drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
   renderCtx.fillStyle = gridColor;
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), tileWidth, 1);
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), 1, tileHeight);
+}
+
+const previewRenders = [];
+
+class previewPixel {
+  constructor(e, forcemode, param) {
+    this.e = e;
+    this.forcemode = forcemode;
+    this.param = param;
+    this.brCursor = document.createElement("div");
+    this.brCursor.classList.add("br-cursor")
+    this.render();
+  }
+
+  render() {
+    elm.main_view.appendChild(this.brCursor);
+    var halfX = Math.floor(owotWidth / 2);
+    var halfY = Math.floor(owotHeight / 2);
+    var pageX = this.e.pageX - halfX;
+    var pageY = this.e.pageY - halfY;
+    var absX = pageX - positionX;
+    var absY = pageY - positionY;
+    var segW = cellW / 2;
+    var segH = cellH / 4;
+    var absBrX = Math.floor(absX / segW);
+    var absBrY = Math.floor(absY / segH);
+    var absBrX_L = Math.floor(absX / cellW);
+    var absBrY_L = Math.floor(absY / cellH);
+    const altType = painter.ptr.ctrl || painter.ptr.mode == "brush"
+    const [mouseX, mouseY] = currentMousePosition;
+    const radius = altType ? this.param + cellH : this.param + (cellW / 2);
+    this.brCursor.style.borderRadius = "0%";
+    this.brCursor.style.width = altType ? cellW + "px" : Math.ceil(cellW / 2) + "px";
+    this.brCursor.style.height = altType ? cellH + "px" : Math.ceil(cellH / 4) + "px";
+    this.brCursor.style.left = altType ? (cellW * absBrX_L + halfX + positionX) + "px" : (segW * absBrX + halfX + positionX) + "px";
+    this.brCursor.style.top = altType ? (cellH * absBrY_L + halfY + positionY) + "px" : (segH * absBrY + halfY + positionY) + "px";
+    this.brCursor.style.opacity = "pencil erase brush spray line shape square circle rounded curve".includes(painter.ptr.mode) ? 1 : 0;
+    previewRenders.push(this);
+  }
+  destroy() {
+    this.brCursor.remove();
+  }
 }
