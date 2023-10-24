@@ -1,7 +1,5 @@
-//1154 modulated
-// next: star select
-//copy("[\x1b*]");
-
+//1651  done with main features
+// next: opacity
 Permissions.can_color_cell = function() {
   return true
 };
@@ -158,6 +156,12 @@ const painter = {
     }
     return value;
   },
+  lerpColors(color,currentColor){
+ const colorRGB = int_to_rgb(color);
+ const currentColorRGB = int_to_rgb(currentColor);
+ const [r,g,b] = painter.lerp(currentColorRGB,colorRGB,painter.ptr.opacity);
+ return rgb_to_int(r,g,b);
+},
   scrollWorld(offset = [0, 0]) {
     const [x, y] = offset
     const deltaX = x;
@@ -172,6 +176,7 @@ const painter = {
   },
   ptr: {
     writeBuffer: [],
+    lastRightClickTime: 0,
     mouse: {
       downLeft: false,
       downRight: false,
@@ -192,8 +197,9 @@ const painter = {
     altFill: false,
     delay: 10,
     cells: [],
+    opacity:1,
     color: YourWorld.Color,
-    bg: YourWorld.BgColor == -1 ? "#ffffff" : YourWorld.BgColor,
+    bg: YourWorld.BgColor == -1 ? -1 : YourWorld.BgColor,
     mode: 'text',
     html: `<div id="o-ptr-info-container">
   <div id="o-ptr-info-top">
@@ -204,6 +210,13 @@ const painter = {
     <div id="o-ptr-info-list">
       <div id="info-select" class="">
         <div>Default action: <span>Selects a region of cells.</span></div>
+
+
+      </div>
+      <div id="info-freehand-select" class="">
+        <div>Default action: <span>Selects a region of cells within a drawn area.</span></div>
+        <div>Ctrl: <span>selection + fill</span></div>
+        <div>Alt: <span>Remove cell from selection</span></div>
 
       </div>
       <div id="info-erase" class="">
@@ -266,9 +279,11 @@ const painter = {
 
       <div id="info-curve" class="">
         <div>Default action: <span>Draws a quadratic curve</span></div>
+
         <div>Ctrl: <span>Draws a full cell</span></div>
-        <div>Alt: <span>Ends and commits the curve</span></div>
+        <div>Alt or dbl-click: <span>Ends and commits the curve</span></div>
         <div>Left-click: <span>Primary color</span></div>
+        <div>Click+drag: <span>Smooth Draw</span></div>
         <div>Right-click: <span>Secondary color</span></div>
         <div>0-9: <span>Sets control point power</span></div>
 				<div>Esc: <span>Restart Tool</span></div>
@@ -333,25 +348,25 @@ const painter = {
   </div>
 </div>
 <div id="o-ptr-side-container">
-  <div data-value="star-select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn disabled"></div>
-  <div data-value="select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="erase" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="bucket" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="dropper" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="zoom" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="pencil" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="brush" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="spray" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="text" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn active"></div>
-  <div data-value="line" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="curve" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="square" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="shape" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="circle" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
-  <div data-value="rounded" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="freehand select" data-value="freehand-select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="select" data-value="select" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="erase" data-value="erase" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="fill" data-value="bucket" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="eye droppper" data-value="dropper" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="zoom" data-value="zoom" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="pencil" data-value="pencil" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="brush" data-value="brush" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="graffiti" data-value="spray" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="text" data-value="text" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn active"></div>
+  <div title="line" data-value="line" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="curve" data-value="curve" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="rectangle" data-value="square" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="shape" data-value="shape" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="oval" data-value="circle" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
+  <div title="rounded square" data-value="rounded" onclick="painter.handleToolClick(this)" class="o-ptr-tool-btn"></div>
 </div>
 <div id="o-ptr-bottom-container">
-  <div onclick="painter.handleColorClick(this)" id="o-ptr-color-switch">
+  <div title = "swap colors" onclick="painter.handleColorClick(this)" id="o-ptr-color-switch">
     <div class="o-ptr-color-switch-prev bg"></div>
     <div class="o-ptr-color-switch-prev main"></div>
   </div>
@@ -371,6 +386,7 @@ const painter = {
   <input oninput="painter.handleColorChange(this)" type="color" value="#903bf7">
   <input oninput="painter.handleColorChange(this)" type="color" value="#ce3bf7">
   <input oninput="painter.handleColorChange(this)" type="color" value="#f73ba9">
+  <input oninput="painter.handleColorChange(this)" title="stroke opacity" style="margin-left:1em" value = "1" id="opacity-slider" type="range" min="0" step="0.01" max="1">
 </div>
 
 
@@ -453,7 +469,7 @@ div#o\=ptr-titlebar {}
   background-color: gainsboro
 }
 
-[data-value="star-select"] {
+[data-value="freehand-select"] {
   background-image: url('data:image/gif;base64,R0lGODlhGAAZAIABAAAAAP///yH/C1hNUCBEYXRhWE1QPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgOS4wLWMwMDEgNzkuYzAyMDRiMmRlZiwgMjAyMy8wMi8wMi0xMjoxNDoyNCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDI0LjQgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjY3RjBEMDhENjc2ODExRUVCN0RDRUE2Q0MyQjQyQjk3IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjY3RjBEMDhFNjc2ODExRUVCN0RDRUE2Q0MyQjQyQjk3Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6NjdGMEQwOEI2NzY4MTFFRUI3RENFQTZDQzJCNDJCOTciIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6NjdGMEQwOEM2NzY4MTFFRUI3RENFQTZDQzJCNDJCOTciLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4B//79/Pv6+fj39vX08/Lx8O/u7ezr6uno5+bl5OPi4eDf3t3c29rZ2NfW1dTT0tHQz87NzMvKycjHxsXEw8LBwL++vby7urm4t7a1tLOysbCvrq2sq6qpqKempaSjoqGgn56dnJuamZiXlpWUk5KRkI+OjYyLiomIh4aFhIOCgYB/fn18e3p5eHd2dXRzcnFwb25tbGtqaWhnZmVkY2JhYF9eXVxbWllYV1ZVVFNSUVBPTk1MS0pJSEdGRURDQkFAPz49PDs6OTg3NjU0MzIxMC8uLSwrKikoJyYlJCMiISAfHh0cGxoZGBcWFRQTEhEQDw4NDAsKCQgHBgUEAwIBAAAh+QQBAAABACwAAAAAGAAZAAACMIyPqcvtD2MEsgGa8FS3HqxJ2liFn4dmjLk6rPq8Rtd91FW7Z8qr8vTb9IbEotFYAAA7');
 }
 
@@ -700,6 +716,7 @@ display:none !important
         c = int_to_hexcode(c);
       }
       if (e.button == 0) {
+
         painter.ptr.color = c
       } else {
         painter.ptr.bg = c
@@ -776,6 +793,10 @@ display:none !important
     }
   },
   handleColorChange(el) {
+if(el.type == "range"){
+ painter.ptr.opacity = el.value;
+return
+}
     if (painter.ptr.mouse.downLeft) {
       document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = el.value;
       painter.ptr.color = el.value;
@@ -786,8 +807,10 @@ display:none !important
     painter.updateColors();
   },
   updateColors() {
+
     YourWorld.Color = (painter.ptr.color == -1 || painter.ptr.color == '#ffffff') ? resolveColorValue('#ffffff') : resolveColorValue(painter.ptr.color);
-    YourWorld.BgColor = (painter.ptr.bg == -1 || painter.ptr.bg == '#ffffff') ? -1 : resolveColorValue(painter.ptr.bg);
+    YourWorld.BgColor = (painter.ptr.bg == -1 ) ? -1 : resolveColorValue(painter.ptr.bg);
+
   },
   toggleInfo() {
     document.querySelector("#o-ptr-info-container").classList.toggle("hidden");
@@ -867,6 +890,11 @@ display:none !important
         owot.classList.add("precise-icon");
         document.querySelector(`#o-ptr-info-title`).innerText = "Quadratic Curve Tool (q)";
         break;
+      case "freehand-select":
+        owot.classList.add("precise-icon");
+        document.querySelector(`#o-ptr-info-title`).innerText = "Freehand Select Tool (a)";
+        break;
+
       case "text":
         document.querySelector(`#o-ptr-info-title`).innerText = "Text Tool (t)";
         w.enableDragging();
@@ -986,7 +1014,7 @@ display:none !important
           const keysToInclude = ["public", "member", "owner"];
           const protectionArray = keysToInclude.map(key => styles[key]);
           const cellColor = resolveColorValue(protectionArray[getCharInfoXY().protection]);
-          const drawColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? chr.color : painter.ptr.mouse.downRight || "line shape square circle rounded curve".includes(painter.ptr.mode) && param ? resolveColorValue(painter.ptr.bg) : resolveColorValue(painter.ptr.color);
+          let drawColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? chr.color : painter.ptr.mouse.downRight || "line shape square circle rounded curve".includes(painter.ptr.mode) && param ? resolveColorValue(painter.ptr.bg) : resolveColorValue(painter.ptr.color);
           painter.ptr.drawMode = erasing ? 1 : Number(drawColor == cellColor);
           const dotChr = (() => {
             if (brush) {
@@ -997,8 +1025,15 @@ display:none !important
             }
             return painter.ptr.ctrl ? (painter.ptr.mouse.downRight ? (painter.ptr.drawMode === 1 ? " " : "█") : "█") : painter.applyDot(chr.char, brX, brY);
           })();
-          const charColor = painter.ptr.drawMode ? brush ? chr.color : chr.color : drawColor;
-          const charBgColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? painter.ptr.mouse.downRight ? resolveColorValue(painter.ptr.bg) : resolveColorValue(painter.ptr.color) : chr.bgColor;
+
+const newColor = painter.lerpColors(drawColor, chr.char==" " ?  chr.bgColor == -1 ||  chr.bgColor == cellColor ? cellColor : chr.bgColor : chr.color);
+const newColorBG = painter.lerpColors(resolveColorValue(painter.ptr.bg), chr.bgColor == -1 ||  chr.bgColor == cellColor ? cellColor: chr.bgColor)
+const newColorBGAlt = painter.lerpColors(resolveColorValue(painter.ptr.color), chr.bgColor == -1 ||  chr.bgColor == cellColor ? cellColor: chr.bgColor)
+          let charColor = painter.ptr.drawMode ? brush ? chr.color : chr.color : newColor;
+          let charBgColor = erasing ? cellColor : brush && !painter.ptr.ctrl ? painter.ptr.mouse.downRight ? newColorBG : newColorBGAlt : chr.bgColor;
+           
+
+
           writeCharToXY(dotChr, charColor, cx, cy, charBgColor);
 
           setTimeout(function() {
@@ -1044,8 +1079,13 @@ display:none !important
 
     onCreate() {
       const colorCellInfo = getCharInfo(this.tileX, this.tileY, this.charX, this.charY);
-      const editArray = painter.ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
-        [this.tileY, this.tileX, this.charY, this.charX, getDate(), this.char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
+      const keysToInclude = ["public", "member", "owner"];
+      const protectionArray = keysToInclude.map(key => styles[key]);
+      const cellColor = resolveColorValue(protectionArray[getCharInfoXY(this.tileX, this.tileY, this.charX, this.charY).protection]);
+      const emptyChar = (( colorCellInfo.char.trim().length == 0 || [6158, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8239, 8287, 8288, 12288, 10240, 12644, 65279, 32].includes( colorCellInfo.char.charCodeAt()) || colorCellInfo.color === cellColor)) && (colorCellInfo.bgColor == cellColor || -1);
+     const char = emptyChar && painter.ptr.altFill ? "█" : colorCellInfo.char;
+     const editArray = !painter.ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
+        [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
 
       tellEdit.push(editArray); // track local changes
       writeBuffer.push(editArray); // send edits to server
@@ -1085,22 +1125,15 @@ display:none !important
         const nearbyCellCharBG = nearbyCellInfo.bgColor;
         const nearbyCellColor = nearbyCellInfo.color;
         const nearbyCellTargetColor = painter.ptr.altFill ? nearbyCellInfo.bgColor : nearbyCellInfo.color;
-        if (
+      if (
           !painter.cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, this.newColor, this.char)
         ) {
-
-
-
           if (this.char == nearbyCellChar && this.targetColor === nearbyCellTargetColor) {
             if (!painter.cellExistsInArray(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, nearbyCellChar)) {
-
               const newColorCell = new painter.ColorCell(newTileX, newTileY, adjustedCharX, adjustedCharY, nearbyCellTargetColor, this.newColor, nearbyCellChar);
               painter.ptr.cells.push(newColorCell);
-
             }
           }
-
-
         }
       }
     }
@@ -1112,7 +1145,7 @@ display:none !important
       cell.charX === charX &&
       cell.charY === charY &&
       cell.targetColor === targetColor &&
-      cell.char === char
+      (cell.char === char || (painter.refTable.includes(cell.char) && painter.refTable.includes(char)))
     ));
   },
   beginFill(e) {
@@ -1134,8 +1167,6 @@ display:none !important
     const targetColor = painter.ptr.altFill ? colorCellInfo.bgColor : colorCellInfo.color;
     const char = colorCellInfo.char;
     const fillColor = (e.button == 0) ? painter.ptr.color : painter.ptr.bg;
-
-
     const newColorCell = new painter.ColorCell(X, Y, x, y, targetColor, resolveColorValue(fillColor), char);
 
     if (!painter.cellExistsInArray(X, Y, x, y, resolveColorValue(fillColor), char)) {
@@ -1291,35 +1322,40 @@ display:none !important
       painter.ptr.line.end = null;
     }
   },
-  doQcurve(e, line) {
-    const endCurve = e.altKey;
+doQcurve(e, line) {
+
+  const endCurve = e.altKey || e.type === 'dblclick' || e.type === 'contextmenu';
+  const click = e.which;
+  const isDblClick = e.type === 'dblclick';
+  const wascontext = e.type === 'contextmenu';
+  if (click) {
     const pos = structuredClone(currentMousePosition);
     const points = painter.ptr.curveControlPoints;
-    const power = ~~(Math.min(6, points.length) * 0.5);
+    const power = Math.min(6, points.length) * 0.5;
 
-    if (e.type == "mousedown" && !endCurve && !painter.ptr.line.start) {
+    if (!endCurve && !painter.ptr.line.start) {
       painter.ptr.curveControlPoints.push(pos);
       painter.ptr.line.start = pos;
-    } else if (e.type == "mousedown" && !endCurve && painter.ptr.line.start && !painter.ptr.line.end) {
-      for (i = 0; i < painter.ptr.controlPointPower; i++) {
+    } else if (!endCurve && painter.ptr.line.start && !painter.ptr.line.end && !line) {
+      const controlPointPower = painter.ptr.controlPointPower;
+      for (let i = 0; i < controlPointPower; i++) {
         painter.ptr.curveControlPoints.push(pos);
       }
-
-
-    } else if ((endCurve || line) && e.type == "mouseup" && points.length > 0 && !painter.ptr.line.end) {
-      painter.ptr.curveControlPoints.push(pos)
+    } else if ((endCurve || line) && (isDblClick || (e.altKey && click) || wascontext || (line && e.type == "mouseup") ) && points.length > 0 && !painter.ptr.line.end) {
+      painter.ptr.curveControlPoints.push(pos);
       painter.ptr.line.end = pos;
 
       const quadraticCurve = painter.createQuadraticCurve(painter.ptr.curveControlPoints);
       painter.brLast = null;
       quadraticCurve.forEach(coord => {
-        painter.doPoint(painter.mouseToPoint(coord), painter.ptr.mode, e.button == 2);
+        painter.doPoint(painter.mouseToPoint(coord), painter.ptr.mode, e.button === 2 || wascontext);
       });
       painter.ptr.line.start = null;
       painter.ptr.line.end = null;
       painter.ptr.curveControlPoints.length = 0;
     }
-  },
+  }
+},
   doLine(e) {
     painter.doQcurve(e, true)
   },
@@ -1372,6 +1408,8 @@ w.on("mousemove", function(e) {
   if ((painter.ptr.mouse.downLeft || painter.ptr.mouse.downRight) && painter.ptr.mode !== "text" && "spray pencil erase brush".includes(painter.ptr.mode)) {
     painter.doPoint(e);
   }
+
+
 });
 var painterGridEnabled = false;
 menuOptions.octogrid = menu.addCheckboxOption("Octo-grid", function() {
@@ -1397,7 +1435,15 @@ document.addEventListener("mouseup", painter.preventChatOverlay)
 document.addEventListener("click", painter.preventChatOverlay)
 document.querySelector("#o-ptr-bottom-container").addEventListener('mousedown', painter.handleColorClick);
 elm.main_view.addEventListener("contextmenu", function(e) {
-  e.preventDefault();
+  
+  const currentTime = new Date().getTime();
+  if (currentTime - painter.ptr.lastRightClickTime <= 300) { 
+   if ("curve".includes(painter.ptr.mode)) {
+    painter.doQcurve(e);
+  }
+  }
+   painter.ptr.lastRightClickTime = currentTime;
+   e.preventDefault();
 })
 
 owot.addEventListener("mousedown", function(e) {
@@ -1415,10 +1461,11 @@ owot.addEventListener("mousedown", function(e) {
     painter.doRounded(e, 0.5, false)
   } else if ("rounded".includes(painter.ptr.mode)) {
     painter.doRounded(e)
-  } else if ("curve".includes(painter.ptr.mode)) {
-    painter.doQcurve(e);
+  }  else if ("freehand-select".includes(painter.ptr.mode)) {
+    freehandSelect.startSelection();
   } else {
     painter.doPoint(e, "single");
+
   }
 })
 
@@ -1452,11 +1499,15 @@ owot.addEventListener("mousemove", function(e) {
   painter.ptr.shift = e.shiftKey;
   painter.ptr.ctrl = e.ctrlKey;
   painter.ptr.alt = e.altKey;
-
-
-
+if ("curve".includes(painter.ptr.mode)) {
+    painter.doQcurve(e);
+  }
 })
-
+owot.addEventListener("dblclick", function(e) {
+if ("curve".includes(painter.ptr.mode)) {
+    painter.doQcurve(e);
+  }
+})
 owot.addEventListener("click", function(e) {
   if (painter.ptr.mode == "zoom") {
     painter.scrollWorld(painter.lerp([0, 0], painter.subtract([e.x, e.y], [(owotWidth / 2), (owotHeight / 2)]), 0.5));
@@ -1524,7 +1575,9 @@ w.on("keydown", function(e) {
     case 'q':
       painter.setMode("curve");
       break;
-
+    case 'a':
+      painter.setMode("freehand-select");
+      break;
     default:
       painter.setMode("text");
       painter.setMode(mode);
@@ -1556,7 +1609,6 @@ function painterTick(e) {
       const potentialEnd = structuredClone(currentMousePosition);
       const [startX, startY] = painter.ptr.line.start;
       const [endX, endY] = potentialEnd;
-      console.log(perfectCorners)
       const roundedCoordinates = painter.createRoundedRectangleCoordinates(startX, startY, endX, endY, radius, painter.ptr.alt, perfectCorners);
       const cornerPixels = roundedCoordinates;
       cornerPixels.forEach(coord => {
@@ -1595,11 +1647,36 @@ setInterval(painter.doRender, 10);
 document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = int_to_hexcode(YourWorld.Color);
 painter.ptr.color = int_to_hexcode(YourWorld.Color);
 document.querySelector(".o-ptr-color-switch-prev.bg").style.backgroundColor = int_to_hexcode(YourWorld.BgColor);
-painter.ptr.bg = int_to_hexcode(YourWorld.BgColor);
 painter.updateColors();
 drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
+  if (painterGridEnabled && zoom >= 1.5) {
+    var b = 0xB9;
+    if (zoom < 0.5) {
+      b += (0xFF - b) * (0.5 - zoom) * 2;
+    }
+    b = Math.floor(b);
+    
+    var dashSize = 0;
+    renderCtx.setLineDash([dashSize]);
+    renderCtx.lineWidth = 1;
+    renderCtx.strokeStyle = `rgba(${b},${b},${b},0.2)`
+    for (var x = 1; x < tileC * 2; x++) {
+
+      renderCtx.beginPath();
+      renderCtx.moveTo(Math.floor(x * (cellW / 2)) + 0.5, 0);
+      renderCtx.lineTo(Math.floor(x * (cellW / 2)) + 0.5, tileH);
+      renderCtx.stroke();
+    }
+      for (var y = 1; y < tileR * 4; y++) {
+
+        renderCtx.beginPath();
+        renderCtx.moveTo(0, Math.floor(y * (cellH / 4)) + 0.5);
+        renderCtx.lineTo(tileW, Math.floor(y * (cellH / 4)) + 0.5);
+        renderCtx.stroke();
+      }
+  }
   if (subgridEnabled && zoom >= 0.3) {
-    if (painterGridEnabled && zoom < 2 || !painterGridEnabled) {
+
       var b = 0xB9;
       if (zoom < 0.5) {
         b += (0xFF - b) * (0.5 - zoom) * 2;
@@ -1621,32 +1698,9 @@ drawGrid = function(renderCtx, gridColor, offsetX, offsetY, tileX, tileY) {
         renderCtx.lineTo(Math.floor(x * cellW) + 0.5, tileH);
         renderCtx.stroke();
       }
-    }
+    
   }
-  if (painterGridEnabled && zoom >= 2) {
-    var b = 0xB9;
-    if (zoom < 0.5) {
-      b += (0xFF - b) * (0.5 - zoom) * 2;
-    }
-    b = Math.floor(b);
-    renderCtx.strokeStyle = "rgb(" + b + ", " + b + ", " + b + ")";
-    var dashSize = 0;
-    renderCtx.setLineDash([dashSize]);
-    renderCtx.lineWidth = 1;
-    for (var x = 1; x < tileC * 2; x++) {
-      for (var y = 1; y < tileR * 4; y++) {
-        renderCtx.beginPath();
-        renderCtx.moveTo(0, Math.floor(y * (cellH / 4)) + 0.5);
-        renderCtx.lineTo(tileW, Math.floor(y * (cellH / 4)) + 0.5);
-        renderCtx.stroke();
-      }
-      renderCtx.beginPath();
-      renderCtx.moveTo(Math.floor(x * (cellW / 2)) + 0.5, 0);
-      renderCtx.lineTo(Math.floor(x * (cellW / 2)) + 0.5, tileH);
-      renderCtx.stroke();
-    }
 
-  }
   renderCtx.fillStyle = gridColor;
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), tileWidth, 1);
   renderCtx.fillRect(Math.floor(offsetX), Math.floor(offsetY), 1, tileHeight);
@@ -1693,3 +1747,316 @@ class previewPixel {
     this.brCursor.remove();
   }
 }
+
+
+
+class FreehandSelection {
+  constructor() {
+    this.selectionCoords = new Set();
+    this.selectedRegion = new Set();
+    this.encapsulatedPixels = new Set();
+    this.eventListeners = [];
+  }
+
+  isPointInPolygon(point, polygon) {
+    const x = point[0];
+    const y = point[1];
+    let isInside = false;
+
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0];
+      const yi = polygon[i][1];
+      const xj = polygon[j][0];
+      const yj = polygon[j][1];
+      const intersect = yi >= y !== yj >= y && x <= ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+      if (intersect) {
+        isInside = !isInside;
+      }
+    }
+    return isInside;
+  }
+
+  getBoundingBox() {
+    const pixelCoordinates = Array.from(this.selectionCoords);
+    let minX = Number.MAX_VALUE;
+    let minY = Number.MAX_VALUE;
+    let maxX = Number.MIN_VALUE;
+    let maxY = Number.MIN_VALUE;
+
+    for (const pixel of pixelCoordinates) {
+      const [x, y] = pixel;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+
+    const boundingBox = [
+      [minX, minY],
+      [maxX, minY],
+      [maxX, maxY],
+      [minX, maxY],
+    ];
+
+    return boundingBox;
+  }
+
+  getPixelsInBoundingBox() {
+    const boundingBox = this.getBoundingBox();
+    const pixelsInBoundingBox = new Set();
+    for (let x = boundingBox[0][0]; x <= boundingBox[2][0]; x++) {
+      for (let y = boundingBox[0][1]; y <= boundingBox[2][1]; y++) {
+        const [tileX, tileY, cellX, cellY] = getTileCoordsFromMouseCoords(x, y);
+        const [z, w] = tileAndCharsToWindowCoords(tileX, tileY, cellX, cellY);
+        pixelsInBoundingBox.add([z, w]);
+      }
+    }
+    return [...pixelsInBoundingBox];
+  }
+
+  getPixelsWithinRegion(region) {
+    const pixelsWithinRegion = new Set();
+    const minDistance = Math.floor(Math.min(cellH, cellW) / 2.5);
+    const coordinates = Array.from(this.selectionCoords);
+
+    for (const pixel of coordinates) {
+      if (this.isPointInPolygon(pixel, region)) {
+        let canAdd = true;
+        for (const existingPixel of pixelsWithinRegion) {
+          const dx = pixel[0] - existingPixel[0];
+          const dy = pixel[1] - existingPixel[1];
+          const pixelDistance = Math.sqrt(dx * dx + dy * dy);
+          if (pixelDistance < minDistance) {
+            canAdd = false;
+            break;
+          }
+        }
+        if (canAdd) {
+          pixelsWithinRegion.add(pixel);
+        }
+      }
+    }
+    return [...pixelsWithinRegion];
+  }
+
+getPixelsEncapsulated(pixelsinBounds, pixelsWithinRegion) {
+  const encapsulatedPixels = new Set();
+
+  for (const pixel of pixelsinBounds) {
+    let [x, y] = pixel;
+    const [tileX, tileY, cellX, cellY] = getTileCoordsFromMouseCoords(x, y);
+    [x, y] = tileAndCharsToWindowCoords(tileX, tileY, cellX, cellY);
+
+    // Create a unique key for the pixel
+    const pixelKey = `${x},${y}`;
+
+    if (this.isPointInPolygon([x, y], pixelsWithinRegion) && !encapsulatedPixels.has(pixelKey)) {
+      encapsulatedPixels.add(pixelKey);
+    }
+  }
+
+  // Convert the Set back to an array
+  return Array.from(encapsulatedPixels).map(pixelKey => pixelKey.split(',').map(Number));
+}
+
+  addToSelection(e) {
+    if (e.buttons === 1) {
+      let pos = structuredClone(currentMousePosition);
+      let [x, y] = pos;
+      const [tileX, tileY, cellX, cellY] = getTileCoordsFromMouseCoords(x, y);
+      [x, y] = tileAndCharsToWindowCoords(tileX, tileY, cellX, cellY);
+      let isDuplicate = false;
+
+      for (const coord of this.selectionCoords) {
+        if (coord[0] === x && coord[1] === y) {
+          isDuplicate = true;
+          break;
+        }
+      }
+      if (!isDuplicate && !e.altKey) {
+        this.selectionCoords.add([x, y]);
+      } else if (e.altKey) {
+        const pixelToRemove = Array.from(this.selectionCoords).find(coord => coord[0] === x && coord[1] === y);
+        if (pixelToRemove) {
+          this.selectionCoords.delete(pixelToRemove);
+        }
+      }
+
+      const selectedRegion = this.getBoundingBox();
+      const pixelsinBounds = this.getPixelsInBoundingBox();
+      const pixelsWithinRegion = this.getPixelsWithinRegion(selectedRegion);
+      const encapsulatedPixels = e.ctrlKey
+        ? this.getPixelsEncapsulated(pixelsinBounds, pixelsWithinRegion).concat(Array.from(pixelsWithinRegion))
+        : Array.from(pixelsWithinRegion);
+      this.selectedRegion = selectedRegion;
+      this.encapsulatedPixels = new Set(encapsulatedPixels);
+      this.highlightRegion(encapsulatedPixels);
+    } else {
+      this.handleRegionSelection();
+      this.selectionCoords.clear();
+      this.removeAllEventListeners();
+    }
+  }
+
+  startSelection() {
+    this.addEventListener(owot, "mousemove", (event) => this.addToSelection(event));
+  }
+
+  addEventListener(element, eventType, callback) {
+    const listener = {
+      element,
+      eventType,
+      callback,
+    };
+    element.addEventListener(eventType, callback);
+    this.eventListeners.push(listener);
+  }
+
+  removeAllEventListeners() {
+    for (const listener of this.eventListeners) {
+      listener.element.removeEventListener(listener.eventType, listener.callback);
+    }
+    this.eventListeners = [];
+  }
+
+  highlightRegion(positions) {
+    renderTiles();
+    for (const [x, y] of positions) {
+      const [tileX, tileY, charX, charY] = getTileCoordsFromMouseCoords(x, y);
+      const tileKey = `${tileY},${tileX}`;
+      const tileScreenPos = getTileScreenPosition(tileX, tileY);
+      const [offsetX, offsetY] = tileScreenPos;
+      owotCtx.fillStyle = `rgba(0, 0, 255, 0.4)`;
+      owotCtx.fillRect(
+        ~~offsetX + charX * cellW,
+        ~~offsetY + charY * cellH,
+        cellW,
+        cellH
+      );
+    }
+  }
+
+  handleRegionSelection() {
+    const selectedRegion = this.selectedRegion;
+    const encapsulatedPixels = Array.from(this.encapsulatedPixels);
+
+    const coordA = getTileCoordsFromMouseCoords(
+      selectedRegion[0][0],
+      selectedRegion[0][1]
+    );
+    const coordB = getTileCoordsFromMouseCoords(
+      selectedRegion[2][0],
+      selectedRegion[2][1]
+    );
+
+    var tileX = coordA[0];
+    var tileY = coordA[1];
+    var charX = coordA[2];
+    var charY = coordA[3];
+
+    var regWidth = (coordB[0] - coordA[0]) * tileC + coordB[2] - coordA[2] + 1;
+    var regHeight = (coordB[1] - coordA[1]) * tileR + coordB[3] - coordA[3] + 1;
+
+    var reg = [];
+    var colors = [];
+    var bgcolors = [];
+    var links = [];
+    var protections = [];
+    var decorations = [];
+    for (var y = 0; y < regHeight; y++) {
+      var r_reg = [];
+      var r_colors = [];
+      var r_bgcolors = [];
+      var r_links = [];
+      var r_protections = [];
+      var r_decorations = [];
+      var c_color = false;
+      var c_bgcolor = false;
+      var c_link = false;
+      var c_protection = false;
+      var c_decoration = false;
+      for (var x = 0; x < regWidth; x++) {
+        var charInfo = getCharInfo(tileX, tileY, charX, charY);
+        var char = charInfo.char;
+
+        let shouldAdd = encapsulatedPixels.some(([A, B]) => {
+          const [a, b] = tileAndCharsToWindowCoords(tileX, tileY, charX, charY);
+          return a === A && b === B;
+        });
+
+        char = shouldAdd ? char.replace(/\r|\n|\x1b/g, " ") : "\x1b*";
+        r_reg.push(char);
+        r_colors.push(charInfo.color);
+        r_bgcolors.push(charInfo.bgColor);
+        if (charInfo.color) c_color = true;
+        if (charInfo.bgColor != -1) c_bgcolor = true;
+        var tile = Tile.get(tileX, tileY);
+        var containsLink = false;
+        if (tile && tile.properties && tile.properties.cell_props) {
+          if (
+            tile.properties.cell_props[charY] &&
+            tile.properties.cell_props[charY][charX]
+          ) {
+            var link = tile.properties.cell_props[charY][charX];
+            if (link.link) {
+              link = link.link;
+              containsLink = true;
+              c_link = true;
+              if (link.type == "url") {
+                r_links.push('$u"' + escapeQuote(link.url) + '"');
+              } else if (link.type == "coord") {
+                r_links.push(
+                  '$c' + "[" + link.link_tileX + "," + link.link_tileY + "]"
+                );
+              }
+            }
+          }
+        }
+        r_protections.push(charInfo.protection);
+        if (charInfo.protection !== null) c_protection = true;
+        if (!containsLink) {
+          r_links.push(null);
+        }
+        r_decorations.push(charInfo.decoration);
+        if (charInfo.decoration !== null) c_decoration = true;
+        charX++;
+        if (charX >= tileC) {
+          charX = 0;
+          tileX++;
+        }
+      }
+      if (!c_color) r_colors = null;
+      if (!c_link) r_links = null;
+      if (!c_protection) r_protections = null;
+      if (!c_decoration) r_decorations = null;
+      reg.push(r_reg);
+      colors.push(r_colors);
+      bgcolors.push(r_bgcolors);
+      links.push(r_links);
+      protections.push(r_protections);
+      decorations.push(r_decorations);
+      tileX = coordA[0];
+      charX = coordA[2];
+      charY++;
+      if (charY >= tileR) {
+        charY = 0;
+        tileY++;
+      }
+    }
+    w.ui.selectionModal.open(
+      reg,
+      colors,
+      bgcolors,
+      links,
+      protections,
+      decorations,
+      [coordA, coordB]
+    );
+    w.emit("regionSelected", {
+      a: coordA,
+      b: coordB,
+    });
+  }
+}
+
+const freehandSelect = new FreehandSelection();
