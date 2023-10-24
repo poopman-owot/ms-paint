@@ -1,5 +1,5 @@
-//1651  done with main features
-// next: opacity
+//v 1699
+
 Permissions.can_color_cell = function() {
   return true
 };
@@ -761,8 +761,12 @@ display:none !important
     el.classList.add("active");
   },
   handleColorClick(e) {
+
     let isSwitcher;
     if (e.target) {
+if(e.target.id == 'opacity-slider'){
+return
+}
       if (e.target.classList) {
         isSwitcher = e.target.classList.contains("o-ptr-color-switch-prev");
       }
@@ -797,7 +801,8 @@ if(el.type == "range"){
  painter.ptr.opacity = el.value;
 return
 }
-    if (painter.ptr.mouse.downLeft) {
+
+    else if (painter.ptr.mouse.downLeft) {
       document.querySelector(".o-ptr-color-switch-prev.main").style.backgroundColor = el.value;
       painter.ptr.color = el.value;
     } else if (painter.ptr.mouse.downRight) {
@@ -1082,10 +1087,13 @@ const newColorBGAlt = painter.lerpColors(resolveColorValue(painter.ptr.color), c
       const keysToInclude = ["public", "member", "owner"];
       const protectionArray = keysToInclude.map(key => styles[key]);
       const cellColor = resolveColorValue(protectionArray[getCharInfoXY(this.tileX, this.tileY, this.charX, this.charY).protection]);
-      const emptyChar = (( colorCellInfo.char.trim().length == 0 || [6158, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8239, 8287, 8288, 12288, 10240, 12644, 65279, 32].includes( colorCellInfo.char.charCodeAt()) || colorCellInfo.color === cellColor)) && (colorCellInfo.bgColor == cellColor || -1);
-     const char = emptyChar && painter.ptr.altFill ? "█" : colorCellInfo.char;
-     const editArray = !painter.ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, colorCellInfo.color, this.newColor] : //bgcolor
-        [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, this.newColor, colorCellInfo.bgColor] //color
+      const emptyChar = (( colorCellInfo.char.trim().length == 0 || [6158, 8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202, 8203, 8204, 8205, 8239, 8287, 8288, 12288, 10240, 12644, 65279, 32].includes( colorCellInfo.char.charCodeAt()) || colorCellInfo.color === cellColor));
+const emptyBG = (colorCellInfo.bgColor == cellColor || -1);
+     const char = emptyChar && emptyBG && painter.ptr.altFill ? "█" : colorCellInfo.char;
+     const newColorBG = painter.lerpColors(this.newColor, colorCellInfo.bgColor == -1 ||  colorCellInfo.bgColor == cellColor ? cellColor : colorCellInfo.bgColor );
+     const newColor = painter.lerpColors(this.newColor,emptyChar && emptyBG ?  cellColor: emptyBG ? colorCellInfo.color : colorCellInfo.bgColor);
+     const editArray = !painter.ptr.altFill ? [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, colorCellInfo.color, newColorBG] : //bgcolor
+        [this.tileY, this.tileX, this.charY, this.charX, getDate(), char, nextObjId, newColor, colorCellInfo.bgColor] //color
 
       tellEdit.push(editArray); // track local changes
       writeBuffer.push(editArray); // send edits to server
