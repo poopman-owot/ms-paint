@@ -908,8 +908,16 @@ return
       default:
         // code block
     }
-    document.querySelector("#o-ptr-info-list .active")?.classList.remove("active");
-    document.querySelector(`#info-${painter.ptr.mode}`)?.classList.add("active");
+var activeItem = document.querySelector("#o-ptr-info-list .active");
+if (activeItem !== null) {
+    activeItem.classList.remove("active");
+}
+
+var targetId = "info-" + painter.ptr.mode;
+var targetElement = document.querySelector("#" + targetId);
+if (targetElement !== null) {
+    targetElement.classList.add("active");
+}
   },
   applyDot(chr, x, y, erase) {
     var idx = painter.refTable.indexOf(chr);
